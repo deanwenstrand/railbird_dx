@@ -1,0 +1,125 @@
+type: action
+name: search_semantic
+description: "Search contacts, accounts, and records using natural language queries with semantic understanding"
+version: 1.0
+agent_access: ["crm_coordinator"]
+
+# LLM Integration Metadata
+ai:
+  when_to_use: "When user wants to find people, companies, or records using natural language descriptions, names, or context clues"
+  examples:
+    - "find John Smith at Acme Corp"
+    - "show me tech startup contacts in California"
+    - "search for contacts who work at consulting companies"
+    - "find people with email addresses at google.com"
+  effect: read
+  priority: high
+  tags: ["search", "semantic", "contacts", "accounts", "nlp"]
+
+# Use existing endpoint for semantic search
+implementation:
+  type: existing_endpoint
+  endpoint: "/api/search/semantic"
+  method: "POST"
+
+# Input schema
+input_schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: "Natural language search query - can include names, companies, locations, job titles, etc."
+      examples: 
+        - "John Smith" 
+        - "tech startups in San Francisco"
+        - "marketing managers at SaaS companies"
+      minLength: 1
+    limit:
+      type: integer
+      description: "Maximum number of results to return"
+      default: 10
+      minimum: 1
+      maximum: 100
+    include_accounts:
+      type: boolean
+      description: "Include account/company matches in results"
+      default: true
+    include_contacts:
+      type: boolean  
+      description: "Include contact/person matches in results"
+      default: true
+  required: ["query"]
+
+# Output schema
+output_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: "Whether the search completed successfully"
+    results:
+      type: array
+      description: "Array of matching contacts and accounts with relevance scores"
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+            description: "Record ID"
+          type:
+            type: string
+            enum: ["contact", "account"]
+            description: "Type of record"
+          name:
+            type: string
+            description: "Person or company name"
+          email:
+            type: string
+            description: "Primary email address (contacts only)"
+          company:
+            type: string
+            description: "Company name (for contacts)"
+          title:
+            type: string
+            description: "Job title (contacts only)"
+          relevance_score:
+            type: number
+            description: "Search relevance score (0-1)"
+          snippet:
+            type: string
+            description: "Brief description showing why this matched"
+    total_found:
+      type: integer
+      description: "Total number of matches found (before limit)"
+    query_time_ms:
+      type: integer
+      description: "Search execution time in milliseconds"
+    suggestions:
+      type: array
+      description: "Alternative search suggestions if few results"
+      items:
+        type: string
+  required: ["success", "results", "total_found"]
+
+# Security & UX - Search doesn't need approval
+requires_approval: false
+permissions: ["contacts:read", "accounts:read"]
+
+# Error handling
+error_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+      const: false
+    error_code:
+      type: string
+      enum: ["INVALID_QUERY", "PERMISSION_DENIED", "SEARCH_TIMEOUT", "SERVICE_ERROR"]
+    error_message:
+      type: string
+      description: "Human-readable error message"
+    suggestions:
+      type: array
+      description: "Suggestions to fix the query"
+      items:
+        type: string

@@ -1,0 +1,55 @@
+type: integration
+name: slack_notifications
+service: slack
+description: "Send notifications to Slack channels via webhook"
+
+endpoint: "https://hooks.slack.com/services/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"
+method: "POST"
+
+auth:
+  type: "none"
+  description: "Slack webhooks use the URL itself for authentication"
+
+request_mapping:
+  headers:
+    Content-Type: "application/json"
+  body_template: |
+    {
+      "text": "{{message}}",
+      "channel": "{{channel|default:env.SLACK_CHANNEL}}",
+      "username": "{{env.SLACK_USERNAME}}",
+      "attachments": [
+        {
+          "color": "{{color|default:'good'}}",
+          "fields": [
+            {
+              "title": "{{title|default:'Notification'}}",
+              "value": "{{details|default:''}}",
+              "short": false
+            }
+          ],
+          "actions": [
+            {
+              "type": "button",
+              "text": "View Contact in CRM",
+              "url": "{{crm_link|default:'#'}}",
+              "style": "primary"
+            }
+          ]
+        }
+      ]
+    }
+
+response_mapping:
+  success_condition: "status_code == 200"
+  data_extraction:
+    slack_message_id: "ts"
+
+error_handling:
+  on_failure: "log_error"
+  retry_attempts: 3
+
+timeout: 30
+retry_config:
+  max_retries: 3
+  backoff_factor: 1.5

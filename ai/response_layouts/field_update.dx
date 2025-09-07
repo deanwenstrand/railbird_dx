@@ -1,0 +1,251 @@
+type: ai_layout
+name: FieldUpdate
+description: Field update approval layout showing record changes with before/after values
+
+components:
+  - name: field_update_approval
+    type: react_component
+    location: main
+    react: |
+      import React, { useState } from 'react';
+      
+      // Get the record information and field changes from inputs
+      const { object_type, record_id, fields: fieldsToUpdate } = inputs;
+      const recordData = context.record_data || {};
+      const fieldMetadata = context.field_metadata || {};
+      
+      const [editedFields, setEditedFields] = useState(fieldsToUpdate || {});
+      
+      // Display the record identifier 
+      const getRecordDisplayName = () => {
+        if (!recordData) return record_id;
+        
+        // Try common name fields based on object type
+        switch(object_type) {
+          case 'contact':
+            if (recordData.first_name || recordData.last_name) {
+              return `${recordData.first_name || ''} ${recordData.last_name || ''}`.trim();
+            }
+            return recordData.email || record_id;
+          case 'account':
+            return recordData.name || recordData.company_name || record_id;
+          case 'opportunity':
+            return recordData.name || recordData.title || record_id;
+          case 'campaign':
+            return recordData.name || record_id;
+          case 'activity':
+          case 'task':
+            return recordData.subject || recordData.name || record_id;
+          default:
+            return recordData.name || record_id;
+        }
+      };
+      
+      // Get field display name from metadata
+      const getFieldDisplayName = (fieldName) => {
+        return fieldMetadata[fieldName]?.view_name || fieldName;
+      };
+      
+      // Format field values for display
+      const formatFieldValue = (value, fieldName) => {
+        if (value === null || value === undefined || value === '') return 'Empty';
+        
+        const metadata = fieldMetadata[fieldName];
+        if (metadata?.type === 'datetime' && value) {
+          try {
+            return new Date(value).toLocaleDateString();
+          } catch {
+            return value;
+          }
+        }
+        
+        if (typeof value === 'boolean') {
+          return value ? 'Yes' : 'No';
+        }
+        
+        if (typeof value === 'object') {
+          return JSON.stringify(value);
+        }
+        
+        return String(value);
+      };
+      
+      // Handle field value updates
+      const handleFieldChange = (fieldName, value) => {
+        setEditedFields(prev => ({
+          ...prev,
+          [fieldName]: value
+        }));
+      };
+      
+      // Handle approval
+      const handleApprove = () => {
+        onResponse?.({
+          approved: true,
+          data_updates: {
+            fields: editedFields
+          }
+        });
+      };
+      
+      // Handle rejection
+      const handleReject = () => {
+        onResponse?.({ approved: false });
+      };
+      
+      const recordDisplayName = getRecordDisplayName();
+      const objectTypeDisplay = object_type.charAt(0).toUpperCase() + object_type.slice(1);
+      
+      // Debug: log the data structure to help troubleshoot
+      console.log('Field Update Debug:', {
+        inputs,
+        context,
+        recordData,
+        fieldMetadata,
+        editedFields
+      });
+      
+      return (
+        <div className="border border-stone-200 bg-white rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="bg-stone-50 px-4 py-3 border-b border-stone-200">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+              <span className="text-sm font-medium text-stone-900">Field Update Request</span>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-4 space-y-4">
+            {/* Record Information */}
+            <div>
+              <label className="text-xs font-medium text-stone-600 uppercase tracking-wide">Record Being Updated</label>
+              <div className="mt-2">
+                <div className="text-sm">
+                  <div className="font-medium">{recordDisplayName}</div>
+                  <div className="text-stone-600">
+                    {objectTypeDisplay} (ID: 
+                    <a 
+                      href={`http://localhost:5173/${object_type}/${recordData?.id || record_id}`}
+                      className="text-blue-600 hover:text-blue-800 underline ml-1"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {recordData?.id || record_id}
+                    </a>)
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Field Changes */}
+            <div>
+              <label className="text-xs font-medium text-stone-600 uppercase tracking-wide">Field Changes</label>
+              <div className="mt-2 space-y-3">
+                {Object.entries(editedFields).map(([fieldName, newValue]) => {
+                  // Try multiple sources for current value with case-insensitive matching
+                  let currentValue = recordData[fieldName] || 
+                                   context[fieldName] || 
+                                   context.current_values?.[fieldName] ||
+                                   inputs.current_values?.[fieldName];
+                  
+                  // If no direct match, try case-insensitive lookup in recordData
+                  if (!currentValue && recordData) {
+                    const recordFields = Object.keys(recordData);
+                    const matchingField = recordFields.find(field => 
+                      field.toLowerCase() === fieldName.toLowerCase()
+                    );
+                    if (matchingField) {
+                      currentValue = recordData[matchingField];
+                    }
+                  }
+                  const fieldDisplayName = getFieldDisplayName(fieldName);
+                  const metadata = fieldMetadata[fieldName];
+                  
+                  return (
+                    <div key={fieldName} className="bg-stone-50 border border-stone-200 rounded p-3">
+                      <div className="font-medium text-sm text-stone-900 mb-2">
+                        {fieldDisplayName}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {/* Current Value */}
+                        <div>
+                          <label className="text-xs font-medium text-stone-600 uppercase tracking-wide">Current</label>
+                          <div className="mt-1 text-sm text-stone-700 bg-white border border-stone-200 rounded px-2 py-1">
+                            {formatFieldValue(currentValue, fieldName)}
+                          </div>
+                        </div>
+                        
+                        {/* New Value (editable) */}
+                        <div>
+                          <label className="text-xs font-medium text-stone-600 uppercase tracking-wide">New Value</label>
+                          {metadata?.type === 'textarea' ? (
+                            <textarea
+                              value={newValue || ''}
+                              onChange={(e) => handleFieldChange(fieldName, e.target.value)}
+                              className="mt-1 block w-full text-sm border border-stone-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              rows={3}
+                              disabled={isLoading}
+                            />
+                          ) : metadata?.type === 'picklist.excl' && metadata?.values ? (
+                            <select
+                              value={newValue || ''}
+                              onChange={(e) => handleFieldChange(fieldName, e.target.value)}
+                              className="mt-1 block w-full text-sm border border-stone-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              disabled={isLoading}
+                            >
+                              <option value="">Select...</option>
+                              {metadata.values.map(option => (
+                                <option key={option} value={option}>{option}</option>
+                              ))}
+                            </select>
+                          ) : metadata?.type === 'boolean' ? (
+                            <select
+                              value={newValue === true ? 'true' : newValue === false ? 'false' : ''}
+                              onChange={(e) => handleFieldChange(fieldName, e.target.value === 'true' ? true : e.target.value === 'false' ? false : null)}
+                              className="mt-1 block w-full text-sm border border-stone-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              disabled={isLoading}
+                            >
+                              <option value="">Select...</option>
+                              <option value="true">Yes</option>
+                              <option value="false">No</option>
+                            </select>
+                          ) : (
+                            <input
+                              type={metadata?.type === 'email' ? 'email' : metadata?.type === 'datetime' ? 'datetime-local' : 'text'}
+                              value={newValue || ''}
+                              onChange={(e) => handleFieldChange(fieldName, e.target.value)}
+                              className="mt-1 block w-full text-sm border border-stone-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              disabled={isLoading}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex space-x-2 pt-2 border-t border-stone-200">
+              <button
+                onClick={handleApprove}
+                disabled={isLoading || Object.keys(editedFields).length === 0}
+                className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Processing...' : 'Approve Update'}
+              </button>
+              
+              <button
+                onClick={handleReject}
+                disabled={isLoading}
+                className="px-4 py-2 bg-white border border-stone-300 text-stone-700 text-sm rounded hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      );

@@ -1,0 +1,35 @@
+type: report
+name: accounts_report
+title: Accounts Report
+description: "Basic report listing accounts with key fields"
+source: account
+
+fields:
+  - company_name
+  - industry
+  - annual_revenue
+  - employee_count
+  - status
+  - created_date
+
+options:
+  pagination: true
+  page_size: 25
+  sortable: true
+  filterable: true
+
+filters:
+  - field: industry
+    type: string
+    operator: equals
+    label: Industry
+    
+  - field: status
+    type: string
+    operator: equals
+    label: Status
+
+  - field: company_name
+    type: string
+    operator: contains
+    label: Company Name

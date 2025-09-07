@@ -1,0 +1,54 @@
+type: report
+name: campaigns_report
+title: Campaign Performance Report
+description: "Comprehensive report showing campaign performance with budget tracking and touch metrics"
+source: campaign
+
+fields:
+  - name
+  - campaign_id
+  - channel
+  - source
+  - medium
+  - status
+  - budget
+  - cost
+  - start_date
+  - end_date
+  - created_at
+
+options:
+  pagination: true
+  page_size: 25
+  sortable: true
+  filterable: true
+
+filters:
+  - field: status
+    type: string
+    operator: equals
+    label: Campaign Status
+    
+  - field: channel
+    type: string
+    operator: equals
+    label: Channel
+    
+  - field: source
+    type: string
+    operator: equals
+    label: Source
+    
+  - field: start_date
+    type: date
+    operator: greater_than_or_equal
+    label: Start Date From
+    
+  - field: end_date
+    type: date
+    operator: less_than_or_equal
+    label: End Date To
+
+sort:
+  - field: created_at
+    direction: desc

@@ -1,0 +1,23 @@
+type: automation
+name: contact_capture_slack
+description: "Send Slack notification when a website contact form is submitted"
+enabled: true
+
+trigger:
+  type: database_event
+  on: record_created
+  tables: [form_submission]
+  
+  # Only fire for the website contact form
+  filters:
+    form_name: "website_contact_us"
+
+action:
+  ref: contact_capture_slack_notification
+  with:
+    contact_name: "{{new_contact.first_name}} {{new_contact.last_name}}"
+    contact_email: "{{new_contact.email}}"
+    contact_phone: "{{new_contact.phone}}"
+    contact_notes: "{{new_contact.notes}}"
+    form_name: "{{form_name}}"
+    crm_link: "http://localhost:5173/contacts/{{new_contact.id}}"

@@ -1,0 +1,41 @@
+type: report
+name: website_events
+title: Website Events Report  
+description: "Track individual website events (page views, exit intent)"
+source: WebEvent
+
+fields:
+  - visitor_id
+  - session_id
+  - ts
+  - event_type
+  - page_url
+  - referrer
+  - title
+
+options:
+  pagination: true
+  page_size: 100
+  sortable: true
+  filterable: true
+  date_format: datetime
+
+default_sort:
+  field: ts
+  order: desc
+
+filters:
+  - field: event_type
+    type: string
+    operator: equals
+    label: Event Type
+    
+  - field: page_url
+    type: string
+    operator: contains
+    label: Page URL
+    
+  - field: visitor_id
+    type: string
+    operator: equals
+    label: Visitor ID

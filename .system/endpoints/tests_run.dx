@@ -1,0 +1,14 @@
+type: endpoint
+name: tests_run
+path: /api/tests/run
+method: POST
+description: "Run customer test interpreter (MVP)"
+access: false
+
+impl:
+  type: python
+  code: |
+    # Deprecated in favor of platform route; kept as no-op
+    return {"success": False, "error": "Use platform /api/tests/run route"}
+
+

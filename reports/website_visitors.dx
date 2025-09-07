@@ -1,0 +1,61 @@
+type: report
+name: website_sessions
+title: "Website Sessions"
+description: "Individual visitor sessions and engagement analytics"
+
+source: WebSession
+default_sort: started_at
+default_direction: desc
+
+fields:
+  - visitor_id
+  - started_at
+  - landing_page_url
+  - landing_referrer
+  - page_count
+  - duration_ms
+  - bounced
+  - device_kind
+  - is_mobile
+  - exit_intent
+  - exit_page_url
+
+filters:
+  - field: started_at
+    label: "Session Date"
+    operator: gte
+    type: date
+  - field: device_kind
+    label: "Device Type"
+    operator: eq
+    type: select
+    options: ["desktop", "mobile", "tablet"]
+  - field: bounced
+    label: "Bounced"
+    operator: eq
+    type: boolean
+  - field: page_count
+    label: "Min Page Views"
+    operator: gte
+    type: number
+
+charts:
+  - id: sessions_by_device
+    title: "Sessions by Device"
+    type: pie
+    x: device_kind
+    y: count
+    aggregate: count
+  - id: bounce_rate_trend
+    title: "Bounce Rate Over Time"
+    type: line
+    x: started_at
+    y: bounced
+    aggregate: avg
+    time_bucket: day
+  - id: page_views_distribution
+    title: "Page Views Distribution"
+    type: bar
+    x: page_count
+    y: count
+    aggregate: count

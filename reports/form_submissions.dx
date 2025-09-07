@@ -1,0 +1,62 @@
+type: report
+name: form_submissions
+title: Form Submissions
+description: "Recent form submissions with linking and tracking context"
+source: FormSubmission
+
+fields:
+  - form_name
+  - relation_name
+  - relation_id
+  - linking_action
+  - visitor_id
+  - session_id
+  - site_key
+  - referrer_url
+  - created_at
+  - error_details
+
+options:
+  pagination: true
+  page_size: 100
+  sortable: true
+  filterable: true
+  date_format: datetime
+  allowed_sort_fields:
+    - created_at
+    - form_name
+    - relation_name
+    - visitor_id
+    - session_id
+
+default_sort:
+  field: created_at
+  order: desc
+
+filters:
+  - field: form_name
+    type: string
+    operator: equals
+    label: Form Name
+  - field: relation_name
+    type: string
+    operator: equals
+    label: Relation
+  - field: relation_id
+    type: string
+    operator: equals
+    label: Relation ID
+  - field: visitor_id
+    type: string
+    operator: equals
+    label: Visitor ID
+  - field: session_id
+    type: string
+    operator: equals
+    label: Session ID
+  - field: site_key
+    type: string
+    operator: equals
+    label: Site Key
+
+

@@ -1,0 +1,7 @@
+# Test endpoint file - VALID
+type: endpoint
+name: health_check
+path: /api/health
+method: GET
+description: "Simple health check endpoint"
+auth_required: false

@@ -1,0 +1,146 @@
+type: schema
+object: opportunity
+view_name: Opportunities
+description: Opportunity tracking for sales pipeline and account relationships
+deletion_mode: soft
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+## object_layout removed – detail pages are always available via default layout fallback
+add_to_top_nav: true
+add_to_global_nav: true  # Show in global navigation
+search:
+  enabled: true
+  label: "Opportunities"
+default_list_view:
+  fields:
+    - name
+    - stage
+    - amount
+    - probability
+    - close_date
+    - created_at
+  sort_by: close_date
+  sort_order: asc
+  page_size: 25
+fields:
+  - name: id
+    view_name: Id
+    type: string
+    required: true
+    primary_key: true
+    system_managed: true
+  - name: name
+    view_name: Opportunity Name
+    type: string
+    required: true
+    length: 200
+  - name: stage
+    view_name: Stage
+    type: picklist.excl
+    required: true
+    values:
+      - Qualifying
+      - Engaging
+      - Proposing
+      - Negotiating
+      - Committed
+      - ClosedWon
+      - ClosedLost
+    default: Qualifying
+  - name: amount
+    view_name: Amount
+    type: number
+    required: false
+  - name: probability
+    view_name: Probability
+    type: number
+    required: false
+    min: 0
+    max: 100
+    default: 50
+  - name: close_date
+    view_name: Close Date
+    type: date
+    required: false
+  - name: next_step
+    view_name: Next Step
+    type: string
+    required: false
+    length: 500
+  - name: description
+    view_name: Description
+    type: textarea
+    required: false
+  - name: account_id
+    view_name: Account ID
+    type: string
+    required: false
+    foreign_key:
+      table: account
+      column: id
+      kind: lookup
+      on_delete: nullify
+  - name: primary_contact_id
+    view_name: Primary Contact
+    type: string
+    required: false
+    foreign_key:
+      table: contact
+      column: id
+      kind: lookup
+      on_delete: nullify
+  - name: lead_source
+    view_name: Lead Source
+    type: picklist.excl
+    required: false
+    values:
+      - website
+      - referral
+      - cold_call
+      - email_campaign
+      - social_media
+      - trade_show
+      - partner
+  - name: assigned_to
+    view_name: Assigned To
+    type: string
+    required: false
+    length: 100
+  - name: created_date
+    view_name: Created Date
+    type: datetime
+    required: false
+  - name: updated_date
+    view_name: Last Updated
+    type: datetime
+    required: false
+
+  # System-managed audit fields
+  - name: created_at
+    view_name: Created At
+    type: datetime
+    required: false
+    system_managed: true
+
+  - name: updated_at
+    view_name: Updated At
+    type: datetime
+    required: false
+    system_managed: true
+
+  - name: deleted_at
+    view_name: Deleted At
+    type: datetime
+    required: false
+    system_managed: true
+
+  - name: search_vector
+    view_name: Search Vector
+    type: string
+    required: false
+    system_managed: true

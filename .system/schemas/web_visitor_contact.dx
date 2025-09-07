@@ -1,0 +1,66 @@
+type: schema
+object: web_visitor_contact
+description: "Junction table linking website visitors to contacts"
+system_managed: true
+
+fields:
+  - name: id
+    type: string
+    primary_key: true
+    system_managed: true
+    description: "Junction table primary key"
+
+  - name: visitor_id
+    type: string
+    required: true
+    foreign_key:
+      table: web_visitor
+      column: id
+      on_delete: cascade
+    description: "Reference to visitor (dx_vid)"
+
+  - name: contact_id
+    type: string
+    required: true
+    foreign_key:
+      table: contact
+      column: id
+      on_delete: cascade
+    description: "Reference to contact"
+
+  - name: first_linked_at
+    type: datetime
+    required: true
+    system_managed: true
+    description: "When visitor was first linked to this contact"
+
+  - name: source
+    type: string
+    required: true
+    default: "form"
+    description: "How the link was established: form, identify"
+
+  - name: is_primary
+    type: boolean
+    default: true
+    description: "True if this is the primary visitor ID for the contact"
+
+  - name: created_at
+    type: datetime
+    required: true
+    system_managed: true
+
+  - name: updated_at
+    type: datetime
+    required: true
+    system_managed: true
+
+  - name: deleted_at
+    type: datetime
+    nullable: true
+    system_managed: true
+
+# Unique constraint for MVP (one visitor → one contact)
+unique_constraints:
+  - name: unique_visitor_contact
+    fields: [visitor_id]

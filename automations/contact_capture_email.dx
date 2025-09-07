@@ -1,0 +1,22 @@
+type: automation
+name: contact_capture_email
+description: "Send a notification email when a contact capture form is submitted and linked to a Contact"
+enabled: true
+
+trigger:
+  type: database_event
+  on: record_created
+  tables: [form_submission]
+  
+  # Only fire for our specific form and when the submission is linked to a Contact
+  filters:
+    form_name: "contact_capture_form"
+    relation_name: "contact"
+
+action:
+  ref: contact_capture_send_notification
+  with:
+    # No explicit recipient; action plugin will fall back to form_submission payload email
+    data: {}
+
+

@@ -1,0 +1,92 @@
+type: schema
+object: user
+view_name: Users
+description: System user account
+deletion_mode: soft
+
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+
+fields:
+- name: id
+  type: string
+  primary_key: true
+  required: true
+  system_managed: true
+
+- name: email
+  type: string
+  required: true
+  unique: true
+  length: 200
+
+- name: name
+  type: string
+  required: false
+  length: 200
+
+- name: is_active
+  type: boolean
+  required: false
+  default: true
+
+- name: profile_id
+  type: string
+  required: false
+  foreign_key:
+    table: profile
+    column: id
+
+- name: region
+  type: string
+  required: false
+
+- name: department
+  type: string
+  required: false
+
+- name: title
+  type: string
+  required: false
+  length: 100
+  view_name: Job Title
+
+- name: phone
+  type: string
+  required: false
+  length: 50
+  view_name: Phone Number
+
+- name: company
+  type: string
+  required: false
+  length: 200
+  view_name: Company Name
+  default: "Playbook CRM"
+
+- name: password_hash
+  type: string
+  required: false
+  length: 255
+
+- name: created_at
+  type: datetime
+  required: true
+  system_managed: true
+
+- name: updated_at
+  type: datetime
+  required: true
+  system_managed: true
+
+- name: deleted_at
+  type: datetime
+  required: false
+  system_managed: true
+
+

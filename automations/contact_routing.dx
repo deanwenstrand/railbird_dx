@@ -1,0 +1,33 @@
+type: automation
+name: contact_routing
+description: Route contact to owner/queue based on territory/state; invoked programmatically only
+enabled: true
+
+# This automation should not self-trigger on DB events; it is invoked by other automations
+trigger:
+  type: database_event
+  on: none
+  tables: []
+
+actions:
+  - type: python
+    code: |
+      # Example placeholder routing logic; replace with your territory rules.
+      # Inputs: may receive {'contact_id': ..., 'account_id': ...} via payload.
+      payload = event if isinstance(event, dict) else {}
+      cid = payload.get('contact_id')
+      aid = payload.get('account_id')
+      Contact = getattr(models, 'Contact', None)
+      if Contact and cid:
+        c = db.query(Contact).get(cid)
+        if c:
+          # simple stub: if contact has account, set owner "acct_owner" else "inbound_queue"
+          try:
+            owner = 'acct_owner' if getattr(c, 'account_id', None) else 'inbound_queue'
+            if hasattr(c, 'assigned_to'):
+              setattr(c, 'assigned_to', owner)
+              db.commit()
+          except Exception:
+            pass
+      return {'routed': True, 'contact_id': cid, 'account_id': aid}
+

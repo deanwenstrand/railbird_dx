@@ -1,0 +1,159 @@
+type: action
+name: undo_change
+description: "Undo recent field changes on contacts, accounts, or other records using the platform's change history"
+version: 1.0
+
+# LLM Integration Metadata
+ai:
+  when_to_use: "When user wants to undo, revert, or rollback recent field changes they made to a record"
+  examples:
+    - "undo the last change to John's record"
+    - "revert the status change I just made"
+    - "undo my recent updates to Acme Corp"
+    - "rollback the title change"
+    - "oops, undo that"
+  effect: write
+  priority: high
+  tags: ["undo", "revert", "rollback", "history", "audit"]
+
+# Use DSL logic for complex undo workflow
+implementation:
+  type: dsl_logic
+  logic:
+    steps:
+      # Step 1: Query change history for the record
+      - action: http_request
+        url: "http://127.0.0.1:8000/api/object_change_logs"
+        method: "GET"
+        data:
+          table_name: "{input.object_type}"
+          record_id: "{input.record_id}"
+          limit: "{input.steps_back}"
+        store_as: change_history
+        
+      # Step 2: Extract the changes to undo
+      - action: conditional
+        condition: "{change_history.status_code} == 200"
+        then:
+          # Step 2a: Parse the change history and build revert data
+          - action: log_event
+            message: "Found {len(change_history.response_data)} changes to potentially undo"
+            
+          # Step 2b: Query current record state for validation
+          - action: query_record
+            table: "{input.object_type}"
+            record_id: "{input.record_id}"
+            store_as: current_record
+            
+          # Step 2c: Apply the undo via field update (reuse existing validation)
+          - action: http_request
+            url: "http://127.0.0.1:8000/api/{input.object_type}/{input.record_id}"
+            method: "PATCH"
+            data: "{reverted_fields}"  # This would be computed from change history
+            store_as: undo_result
+            
+        else:
+          - action: log_event
+            message: "No change history found for {input.object_type} {input.record_id}"
+            level: "error"
+
+# Input schema
+input_schema:
+  type: object
+  properties:
+    object_type:
+      type: string
+      description: "Type of object to undo changes on (contact, account, etc.)"
+      enum: ["contact", "account", "opportunity", "campaign", "activity", "task"]
+    record_id:
+      type: string
+      description: "ID of the record to undo changes on"
+      minLength: 1
+    steps_back:
+      type: integer
+      description: "Number of change steps to undo (default: 1 for most recent)"
+      minimum: 1
+      maximum: 10
+      default: 1
+    specific_change_id:
+      type: string
+      description: "Optional: ID of specific change to undo (if known)"
+    fields_only:
+      type: array
+      description: "Optional: Only undo changes to these specific fields"
+      items:
+        type: string
+    reason:
+      type: string
+      description: "Optional reason for the undo operation"
+      maxLength: 200
+  required: ["object_type", "record_id"]
+
+# Output schema
+output_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: "Whether the undo operation completed successfully"
+    undone_changes:
+      type: array
+      description: "List of changes that were undone"
+      items:
+        type: object
+        properties:
+          field:
+            type: string
+          reverted_from:
+            type: string
+          reverted_to:
+            type: string
+          change_timestamp:
+            type: string
+            format: date-time
+    record_id:
+      type: string
+      description: "ID of the record that was modified"
+    object_type:
+      type: string
+      description: "Type of object that was modified"
+    changes_found:
+      type: integer
+      description: "Number of historical changes found"
+    changes_undone:
+      type: integer
+      description: "Number of changes actually undone"
+    undone_at:
+      type: string
+      format: date-time
+      description: "Timestamp when the undo was performed"
+    llm_feedback:
+      type: string
+      description: "Human-readable summary for the LLM"
+  required: ["success", "record_id", "object_type"]
+
+# Security & UX
+requires_approval: true
+approval_layout: UndoChangeApprovalLayout
+permissions: ["objects:write"]
+
+# Error handling
+error_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+      const: false
+    error_code:
+      type: string
+      enum: ["RECORD_NOT_FOUND", "NO_CHANGES_FOUND", "UNDO_FAILED", "PERMISSION_DENIED", "INVALID_CHANGE_ID"]
+    error_message:
+      type: string
+      description: "Human-readable error message"
+    changes_found:
+      type: integer
+      description: "Number of historical changes found (even if undo failed)"
+    llm_feedback:
+      type: string
+      description: "LLM-friendly error explanation"
+  required: ["success", "error_code", "error_message", "llm_feedback"]

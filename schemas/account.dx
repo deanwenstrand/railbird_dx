@@ -1,0 +1,211 @@
+type: schema
+object: account
+view_name: Accounts
+description: ACME customer account management
+deletion_mode: soft
+endpoints:
+  - GET    # List all accounts
+  - POST   # Create new account
+  - GET /{id}    # Get specific account
+  - PUT /{id}    # Update entire account
+  - PATCH /{id}  # Partial update account
+  - DELETE /{id} # Delete account
+add_to_top_nav: true   # Add to main navigation menu
+search:
+  enabled: true
+  label: "Accounts"
+default_list_view:
+  fields:
+    - company_name
+    - account_type
+    - industry
+    - status
+    - monthly_value
+    - created_at
+  sort_by: created_at
+  sort_order: desc
+  page_size: 25
+fields:
+- name: id
+  view_name: Id
+  type: string
+  required: true
+  primary_key: true
+  system_managed: true
+- name: company_name
+  view_name: Company Name
+  type: string
+  required: true
+  validation:
+    min_length: 2
+  length: 200
+- name: account_type
+  view_name: Account Type
+  type: picklist.excl
+  required: true
+  values:
+  - prospect
+  - customer
+  - partner
+  - inactive
+  default: prospect
+- name: industry
+  view_name: Industry
+  type: picklist.excl
+  required: true
+  values:
+  - technology
+  - healthcare
+  - finance
+  - manufacturing
+  - retail
+  - education
+  - government
+  - other
+- name: employee_count
+  view_name: Number of Employees
+  type: number
+  required: false
+  validation:
+    min: 1
+
+- name: annual_revenue
+  view_name: Annual Revenue
+  type: number
+  required: false
+- name: website
+  view_name: Website
+  type: string
+  required: false
+  length: 200
+- name: billing_address
+  view_name: Billing Address
+  type: textarea
+  required: false
+- name: shipping_address
+  view_name: Shipping Address
+  type: textarea
+  required: false
+- name: primary_contact
+  view_name: Primary Contact
+  type: string
+  required: false
+  length: 100
+- name: contact_email
+  view_name: Primary Email
+  type: email
+  required: false
+  length: 150
+- name: contact_phone
+  view_name: Primary Phone
+  type: string
+  required: false
+  length: 50
+- name: account_manager
+  view_name: Account Manager
+  type: string
+  required: false
+  length: 100
+
+- name: status
+  view_name: Account Status
+  type: picklist.excl
+  required: true
+  values:
+  - active
+  - inactive
+  - suspended
+  - churned
+  default: active
+- name: contract_start_date
+  view_name: Contract Start Date
+  type: date
+  required: false
+- name: contract_end_date
+  view_name: Contract End Date
+  type: date
+  required: false
+- name: monthly_value
+  view_name: Monthly Contract Value
+  type: number
+  required: false
+- name: notes
+  view_name: Account Notes
+  type: textarea
+  required: false
+- name: updated_date
+  view_name: Last Updated
+  type: datetime
+  required: false
+
+# System-managed audit fields
+- name: created_at
+  view_name: Created At
+  type: datetime
+  required: false
+  system_managed: true
+
+- name: updated_at
+  view_name: Updated At
+  type: datetime
+  required: false
+  system_managed: true
+
+- name: deleted_at
+  view_name: Deleted At
+  type: datetime
+  required: false
+  system_managed: true
+
+# ABAC support fields
+- name: region
+  view_name: Region
+  type: string
+  required: false
+
+- name: owner_id
+  view_name: Owner
+  type: string
+  required: false
+  foreign_key:
+    table: user
+    column: id
+
+- name: search_vector
+  view_name: Search Vector
+  type: string
+  required: false
+  system_managed: true
+
+joins:
+
+
+  - name: opportunities
+    view_name: Opportunities
+    object: opportunity
+    type: one_to_many
+    condition: account.id matches opportunity.account_id
+    sort:
+      field: created_at
+      direction: asc
+    limit: 10
+    description: "All opportunities associated with this account"
+
+  - name: activities
+    view_name: Recent Activities
+    object: activity
+    type: one_to_many
+    condition: account.id matches activity.account_id
+    sort:
+      field: created_at
+      direction: desc
+    limit: 15
+    description: "All activities associated with this account"
+
+  - name: account_domains
+    view_name: Account Domains
+    object: account_domain
+    type: one_to_many
+    condition: account.id matches account_domain.account_id
+    description: "Domains associated with this account"
+

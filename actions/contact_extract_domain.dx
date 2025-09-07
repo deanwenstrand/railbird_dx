@@ -1,0 +1,23 @@
+type: action
+name: contact_extract_domain
+description: Extract email domain from new contact and classify shared domain
+implementation: python
+enabled: true
+
+defaults:
+  code: |
+    # Expect: event_data.new_values has the inserted contact row
+    # Return: {'domain': str|None, 'is_shared': bool, 'contact_id': str|None}
+    nv = (event.get('new_values') if isinstance(event, dict) else {}) or {}
+    email = (nv.get('email') or '').strip()
+    domain = email.split('@')[-1].lower() if '@' in email else None
+    shared_set = {
+      'gmail.com','yahoo.com','outlook.com','hotmail.com','icloud.com','proton.me','aol.com','mail.com'
+    }
+    return {
+      'domain': domain,
+      'is_shared': (domain in shared_set) if domain else False,
+      'contact_id': nv.get('id')
+    }
+
+

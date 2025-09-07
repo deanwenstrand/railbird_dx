@@ -1,0 +1,114 @@
+type: action
+name: field_update
+description: "Field updated."
+version: 1.0
+
+# LLM Integration Metadata
+ai:
+  when_to_use: "When user wants to update or change specific fields on a record"
+  examples:
+    - "update John's status to contacted"
+    - "change Sarah's email to sarah@newcompany.com"
+    - "set the account status to active"
+    - "mark this contact as qualified"
+  effect: write
+  priority: high
+  tags: ["update", "fields", "records", "validation"]
+
+# Use DSL logic to fetch record data before approval
+implementation:
+  type: dsl_logic
+  logic:
+    steps:
+      - action: query_record
+        table: "{input.object_type}"
+        record_id: "{input.record_id}"
+        store_as: record_data
+        
+      - action: require_approval
+        message: "Update {record_data.name || record_data.first_name + ' ' + record_data.last_name || input.object_type + ' record'}?"
+        context:
+          record_data: "{record_data}"
+          current_values: "{record_data}"
+          object_type: "{input.object_type}"
+          record_id: "{input.record_id}"
+          fields: "{input.fields}"
+          
+      - action: update_record
+        table: "{input.object_type}"
+        record_id: "{input.record_id}"
+        fields: "{input.fields}"
+        store_as: update_result
+
+# Input schema
+input_schema:
+  type: object
+  properties:
+    object_type:
+      type: string
+      description: "Type of object to update (contact, account, etc.)"
+      enum: ["contact", "account", "opportunity", "campaign", "activity", "task"]
+    record_id:
+      type: string
+      description: "ID of the record to update"
+      minLength: 1
+    fields:
+      type: object
+      description: "Fields to update with their new values"
+      additionalProperties: true
+  required: ["object_type", "record_id", "fields"]
+
+# Output schema
+output_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: "Whether the update completed successfully"
+    updated_record:
+      type: object
+      description: "The updated record data"
+    updated_fields:
+      type: array
+      description: "List of fields that were updated"
+      items:
+        type: string
+    validation_passed:
+      type: boolean
+      description: "Whether validation checks passed"
+    llm_feedback:
+      type: string
+      description: "Human-readable summary for the LLM"
+  required: ["success"]
+
+# Security & UX
+requires_approval: true
+permissions: ["objects:write"]
+
+# Error handling
+error_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+      const: false
+    error_code:
+      type: string
+      enum: ["VALIDATION_ERROR", "RECORD_NOT_FOUND", "PERMISSION_DENIED", "FIELD_NOT_UPDATEABLE"]
+    error_message:
+      type: string
+      description: "Human-readable error message"
+    validation_errors:
+      type: array
+      description: "Specific validation failures"
+      items:
+        type: object
+        properties:
+          field:
+            type: string
+          message:
+            type: string
+    llm_feedback:
+      type: string
+      description: "LLM-friendly error explanation"
+  required: ["success", "error_code", "error_message", "llm_feedback"]

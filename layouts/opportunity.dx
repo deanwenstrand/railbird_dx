@@ -1,0 +1,41 @@
+type: layout
+name: opportunity
+add_to_global_nav: true
+weight: 300
+## theme removed (deprecated)
+description: the default opportunity layout
+
+components:
+  - type: field_section
+    name: opportunity_details
+    view_name: Opportunity Information
+    location: main
+    fields:
+      - name
+      - stage
+      - amount
+      - probability
+      - close_date
+      - next_step
+      - description
+      - account_id
+      - primary_contact_id
+      - lead_source
+      - assigned_to
+      - created_date
+      - updated_date
+
+  # Top navigation related list for line items
+  - type: related_list
+    name: opportunity_products
+    view_name: Line Items
+    location: top_navigation
+    data: opportunity_product
+    limit: 25
+    fields:
+      - product_id
+      - name
+      - sku
+      - quantity
+      - unit_amount
+      - line_amount

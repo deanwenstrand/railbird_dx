@@ -1,0 +1,106 @@
+type: schema
+object: test_run
+view_name: Test Runs
+description: System object recording results of post-codegen smoke and customer tests
+
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+
+add_to_top_nav: false
+object_layout: false
+
+default_list_view:
+  fields:
+    - name
+    - status
+    - started_at
+    - finished_at
+    - duration_ms
+    - errors_count
+  sort_by: started_at
+  sort_order: desc
+  page_size: 25
+
+fields:
+  - name: id
+    view_name: Id
+    type: string
+    required: true
+    primary_key: true
+    system_managed: true
+
+  - name: name
+    view_name: Name
+    type: string
+    required: true
+    length: 150
+
+  - name: status
+    view_name: Status
+    type: picklist.excl
+    required: true
+    default: running
+    values:
+      - queued
+      - running
+      - passed
+      - failed
+
+  - name: started_at
+    view_name: Started At
+    type: datetime
+    required: false
+
+  - name: finished_at
+    view_name: Finished At
+    type: datetime
+    required: false
+
+  - name: duration_ms
+    view_name: Duration (ms)
+    type: number
+    required: false
+
+  - name: errors_count
+    view_name: Errors
+    type: number
+    required: false
+
+  - name: artifacts_path
+    view_name: Artifacts Path
+    type: string
+    length: 500
+    required: false
+
+  - name: env_commit
+    view_name: Commit
+    type: string
+    length: 100
+    required: false
+
+  - name: notes
+    view_name: Notes
+    type: textarea
+    required: false
+
+  - name: metrics
+    view_name: Metrics (JSON)
+    type: textarea
+    required: false
+
+  # System fields
+  - name: created_at
+    view_name: Created At
+    type: datetime
+    required: true
+    system_managed: true
+
+  - name: updated_at
+    view_name: Updated At
+    type: datetime
+    required: true
+    system_managed: true

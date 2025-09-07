@@ -1,0 +1,121 @@
+type: ai_layout
+name: EmailSend
+description: Interactive email sending layout with editable subject and body
+
+components:
+  - name: email_send_approval
+    type: react_component
+    location: main
+    react: |
+      import React, { useState } from 'react';
+      
+      const recipientData = context.recipient_data;
+      const displayName = recipientData?.name || 
+        (recipientData?.first_name && recipientData?.last_name ? 
+          `${recipientData.first_name} ${recipientData.last_name}` : 
+          'Unknown Contact');
+      
+      const [editedSubject, setEditedSubject] = useState(inputs.subject || '');
+      
+      // Deterministic data source - fail loudly if email_body is missing
+      if (!context.email_body) {
+        throw new Error(`EmailSend: Missing required context.email_body. Available context: ${Object.keys(context).join(', ')}`);
+      }
+      
+      const [editedBody, setEditedBody] = useState(context.email_body);
+      
+      const handleSend = () => {
+        onResponse?.({
+          approved: true,
+          data_updates: {
+            subject: editedSubject,
+            body: editedBody
+          }
+        });
+      };
+      
+      const handleCancel = () => {
+        onResponse?.({ approved: false });
+      };
+      
+      return (
+        <div className="border border-stone-200 bg-white rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="bg-stone-50 px-4 py-3 border-b border-stone-200">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span className="text-sm font-medium text-stone-900">EmailSend</span>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-4 space-y-4">
+            {/* Sending To Section */}
+            <div>
+              <label className="text-xs font-medium text-stone-600 uppercase tracking-wide">Sending To</label>
+              <div className="mt-2">
+                <div className="text-sm">
+                  <div className="font-medium">{displayName}</div>
+                  {recipientData?.email && (
+                    <div className="text-stone-600">{recipientData.email}</div>
+                  )}
+                  {recipientData?.company && (
+                    <div className="text-stone-500 text-xs">{recipientData.company}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Email Content Section */}
+            <div>
+              <label className="text-xs font-medium text-stone-600 uppercase tracking-wide">Email Content</label>
+              <div className="mt-2 space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-stone-600 uppercase tracking-wide">Subject</label>
+                  <input
+                    type="text"
+                    value={editedSubject}
+                    onChange={(e) => setEditedSubject(e.target.value)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="mt-1 block w-full text-sm border border-stone-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter email subject..."
+                    disabled={isLoading}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-xs font-medium text-stone-600 uppercase tracking-wide">Message</label>
+                  <textarea
+                    value={editedBody}
+                    onChange={(e) => setEditedBody(e.target.value)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    rows={6}
+                    className="mt-1 block w-full text-sm border border-stone-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter your message..."
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex space-x-2 pt-2 border-t border-stone-200">
+              <button
+                onClick={handleSend}
+                disabled={isLoading}
+                className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Processing...' : 'Approve'}
+              </button>
+              
+              <button
+                onClick={handleCancel}
+                disabled={isLoading}
+                className="px-4 py-2 bg-white border border-stone-300 text-stone-700 text-sm rounded hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      );

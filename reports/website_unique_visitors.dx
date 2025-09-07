@@ -1,0 +1,56 @@
+type: report
+name: website_unique_visitors
+title: "Website Unique Visitors"
+description: "Unique visitor analytics and lifetime behavior"
+
+source: WebVisitor
+
+fields:
+  - id
+  - first_seen
+  - last_seen
+  - first_referrer
+
+options:
+  pagination: true
+  page_size: 25
+  sortable: true
+  filterable: true
+  display_mode: chart_primary
+  table_collapsed: true
+  default_sort:
+    field: first_seen
+    order: desc
+
+filters:
+  - field: first_seen
+    label: "First Visit Date"
+    operator: gte
+    type: date
+  - field: last_seen
+    label: "Last Visit Date"
+    operator: gte
+    type: date
+  - field: first_referrer
+    label: "First Referrer"
+    operator: contains
+    type: text
+
+charts:
+  - id: new_visitors_trend
+    title: "New Visitors Over Time"
+    type: line
+    x: first_seen
+    aggregate: count
+    time_bucket: day
+  - id: visitor_retention
+    title: "Visitor Return Rate"
+    type: bar
+    x: first_seen
+    aggregate: count
+    time_bucket: week
+  - id: traffic_sources
+    title: "Top Traffic Sources"
+    type: bar
+    x: first_referrer
+    aggregate: count

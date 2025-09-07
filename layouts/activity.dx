@@ -1,0 +1,30 @@
+type: layout
+name: activity
+add_to_global_nav: false
+weight: 320
+## theme removed (deprecated)
+description: default activity layout
+
+components:
+  - type: field_section
+    name: activity_details
+    view_name: Activity
+    location: main
+    layout: two_column
+    fields:
+      - type
+      - status
+      - direction
+      - outcome
+      - timestamp
+      - internal_user_id
+      - external_contact_id
+      - external_party
+      - direction
+      - contact_id
+      - opportunity_id
+      - account_id
+      - created_at
+      - updated_at
+
+

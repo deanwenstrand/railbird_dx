@@ -1,0 +1,68 @@
+type: endpoint
+name: object_logs
+description: "Unified timeline of all events for any record"
+path: /api/object_logs
+method: GET
+
+query_params:
+  - name: table_name
+    type: string
+    required: true
+    description: "Name of the object table (e.g., 'lead', 'account')"
+    
+  - name: record_id
+    type: string
+    required: true
+    description: "ID of the record to get history for"
+    
+  - name: limit
+    type: integer
+    required: false
+    default: 50
+    description: "Maximum number of entries to return"
+    
+  - name: sort_order
+    type: string
+    required: false
+    default: "desc"
+    description: "Sort direction (asc or desc)"
+
+response_logic: |
+  SELECT * FROM (
+    SELECT 
+      timestamp::timestamp as timestamp,
+      'object_change' as event_type,
+      operation as event_detail,
+      CASE 
+        WHEN operation = 'UPDATE' THEN 'Record updated'
+        WHEN operation = 'CREATE' THEN 'Record created'
+        WHEN operation = 'DELETE' THEN 'Record deleted'
+        ELSE operation
+      END as event_description,
+      user_id,
+      source_system,
+      operation as change_type,
+      old_values,
+      new_values,
+      changed_fields
+    FROM object_change_log
+    WHERE table_name = {table_name} AND record_id = {record_id}
+    
+    UNION ALL
+    
+    SELECT 
+      created_at::timestamp as timestamp,
+      'form_submission' as event_type,
+      form_name as event_detail,
+      'Form submitted: ' || COALESCE(linking_action, 'Unknown') as event_description,
+      NULL as user_id,
+      'web_form' as source_system,
+      'create' as change_type,
+      NULL as old_values,
+      NULL as new_values,
+      NULL as changed_fields
+    FROM form_submission
+    WHERE relation_name = {table_name} AND relation_id = {record_id}
+  ) combined_events
+  ORDER BY timestamp {sort_order}
+  LIMIT {limit}

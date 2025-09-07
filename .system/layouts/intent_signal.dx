@@ -1,0 +1,63 @@
+type: layout
+name: intent_signal
+add_to_global_nav: false
+weight: 90
+theme: sfdc_light
+description: Detail layout for intent signals
+
+components:
+  - type: field_section
+    name: summary
+    view_name: Summary
+    location: main
+    layout: single_column
+    fields:
+      - title
+      - status
+      - score
+      - confidence
+      - detected_at
+      - event_time
+
+  - type: field_section
+    name: classification
+    view_name: Classification
+    location: main
+    layout: two_column
+    fields:
+      - signal_type
+      - category
+      - channel
+      - source
+
+  - type: field_section
+    name: context
+    view_name: Context
+    location: main
+    layout: single_column
+    fields:
+      - summary
+      - details
+      - url
+      - referrer
+      - payload
+
+  - type: field_section
+    name: linking
+    view_name: Related
+    location: main
+    layout: two_column
+    fields:
+      - account_id
+      - contact_id
+
+  - type: field_section
+    name: system
+    view_name: System
+    location: footer
+    layout: two_column
+    fields:
+      - created_at
+      - updated_at
+
+

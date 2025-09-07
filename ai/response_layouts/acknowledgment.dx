@@ -1,0 +1,61 @@
+type: ai_layout
+name: Acknowledgment
+description: "Brief confirmation notification that auto-hides after action completion"
+
+# Lightweight notification component for simple confirmations
+components:
+  - name: "AcknowledgmentToast"
+    type: "display"
+    props:
+      message: "{response_data.confirmation_message}"
+      auto_hide: true
+      duration: 2000
+    styling:
+      position: "fixed"
+      top: "4"
+      right: "4"
+      z_index: "50"
+      background: "green-500"
+      text_color: "white"
+      padding: "4"
+      rounded: "lg"
+      shadow: "lg"
+
+# React component implementation
+react_component: |
+  import React, { useEffect, useState } from 'react';
+  import { ResponseLayoutProps } from './types';
+
+  export function Acknowledgment(props: ResponseLayoutProps) {
+    const [visible, setVisible] = useState(true);
+    const [fadeOut, setFadeOut] = useState(false);
+
+    useEffect(() => {
+      // Auto-hide after 3 seconds with fade out
+      const timer = setTimeout(() => {
+        setFadeOut(true);
+        setTimeout(() => setVisible(false), 300);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }, []);
+
+    if (!visible) return null;
+
+    const message = props.responseData?.confirmation_message || props.responseData?.response || 'Done';
+
+    return (
+      <div 
+        className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
+          fadeOut ? 'opacity-0 translate-y-[-10px]' : 'opacity-100 translate-y-0'
+        }`}
+      >
+        <div className="bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+          <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          <span className="text-sm font-medium">{message}</span>
+        </div>
+      </div>
+    );
+  }

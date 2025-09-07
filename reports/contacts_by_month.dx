@@ -1,0 +1,33 @@
+type: report
+name: contacts_by_month
+title: "Contacts Created by Month"
+description: "Bar chart showing new contact creation over time by month"
+source: Contact
+
+fields:
+  - created_at
+
+options:
+  pagination: true
+  page_size: 5
+  sortable: false
+  filterable: true
+  display_mode: chart_primary
+  table_collapsed: true
+  default_sort:
+    field: created_at
+    order: desc
+
+filters:
+  - field: created_at
+    type: date
+    operator: gte
+    label: "Created After"
+
+charts:
+  - id: contacts_monthly
+    title: "New Contacts by Month"
+    type: bar
+    x: created_at
+    aggregate: count
+    time_bucket: month

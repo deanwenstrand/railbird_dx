@@ -1,0 +1,102 @@
+type: schema
+object: object_change_log
+description: "Object-level audit log for database changes"
+
+fields:
+  # Core identification
+  - name: id
+    type: string
+    primary_key: true
+    required: true
+    system_managed: true
+
+  # Target record
+  - name: table_name
+    type: text
+    required: true
+    description: "Name of the table that was modified"
+
+  - name: record_id
+    type: string
+    required: true
+    description: "ID of the record that was modified"
+
+  # Operation
+  - name: operation
+    type: text
+    required: true
+    description: "Type of operation (CREATE, UPDATE, DELETE)"
+
+  # Change payloads (object-level)
+  - name: old_values
+    type: json
+    required: false
+    description: "JSON object containing old field values"
+
+  - name: new_values
+    type: json
+    required: false
+    description: "JSON object containing new field values"
+
+  - name: changed_fields
+    type: json
+    required: false
+    description: "JSON array of field names that changed"
+
+  # Metadata
+  - name: timestamp
+    type: datetime
+    required: true
+    default: "CURRENT_TIMESTAMP"
+    description: "When the change occurred"
+
+  - name: user_id
+    type: string
+    required: false
+    description: "ID of user who made the change"
+
+  - name: source_system
+    type: text
+    required: false
+    default: "playbook_platform"
+    description: "Source system for the change"
+
+  # Tracing
+  - name: correlation_id
+    type: text
+    required: false
+    length: 64
+    description: "Correlation ID that ties this change to a request/automation run"
+
+  - name: source
+    type: text
+    required: false
+    description: "High-level source of change (e.g., 'automation', 'api', 'ui')"
+
+  - name: automation_name
+    type: text
+    required: false
+    description: "Automation name if source is automation"
+
+  - name: automation_step
+    type: text
+    required: false
+    description: "Automation step name if available"
+
+  # System fields
+  - name: created_at
+    type: datetime
+    required: true
+    system_managed: true
+
+  - name: updated_at
+    type: datetime
+    required: true
+    system_managed: true
+
+indexes:
+  - fields: [table_name, record_id]
+    name: "idx_object_change_log_table_record"
+  - fields: [timestamp]
+    name: "idx_object_change_log_timestamp"
+

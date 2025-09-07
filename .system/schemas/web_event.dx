@@ -1,0 +1,81 @@
+type: schema
+object: web_event
+description: "Individual website events (page views, exit intent)"
+system_managed: true
+
+fields:
+  - name: id
+    type: string
+    required: true
+    primary_key: true
+    system_managed: true
+    description: "Event ID (DXID)"
+
+  - name: visitor_id
+    type: string
+    required: true
+    foreign_key:
+      table: web_visitor
+      column: id
+      on_delete: cascade
+    description: "Reference to visitor (dx_vid)"
+
+  - name: session_id
+    type: string
+    required: true
+    foreign_key:
+      table: web_session
+      column: id
+      on_delete: cascade
+    description: "Reference to session (dx_sid)"
+
+  - name: site_key
+    type: string
+    required: true
+    description: "Site identifier for multi-tenant tracking"
+
+  - name: ts
+    type: datetime
+    required: true
+    system_managed: true
+    description: "Event timestamp"
+
+  - name: event_type
+    type: string
+    required: true
+    description: "Event type: page_view, exit_intent, form_submit"
+
+  - name: page_url
+    type: text
+    required: true
+    description: "URL of the page where event occurred"
+
+  - name: referrer
+    type: text
+    nullable: true
+    description: "Referrer URL for this event"
+
+  - name: title
+    type: text
+    nullable: true
+    description: "Page title"
+
+  - name: props
+    type: json
+    nullable: true
+    description: "Additional event properties (minimal, reserved)"
+
+  - name: created_at
+    type: datetime
+    required: true
+    system_managed: true
+
+  - name: updated_at
+    type: datetime
+    required: true
+    system_managed: true
+
+  - name: deleted_at
+    type: datetime
+    nullable: true
+    system_managed: true

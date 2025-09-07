@@ -1,0 +1,125 @@
+type: action
+name: converse
+description: "Communicate with the user - ask questions, present options, or provide interactive responses"
+version: 1.0
+completion_behavior: auto_final
+agent_access: ["crm_coordinator"]
+
+# LLM Integration - for user communication
+ai:
+  when_to_use: "When you need to communicate with the user - ask questions, present options, clarify requirements, or provide interactive responses"
+  examples:
+    - "Which email template would you like to use?"
+    - "Do you want to include archived records in this search?"
+    - "What date range should I use for the analytics report?"
+    - "Should I send this email to the whole team or just the manager?"
+    - "I found 15 contacts matching 'John'. Which one did you mean?"
+    - "Would you like me to create the task now or schedule it for later?"
+  effect: interact
+  priority: medium
+  tags: ["converse", "communicate", "question", "interactive", "clarify", "options"]
+
+# Simple implementation - just pass through the communication
+implementation:
+  type: dsl_logic
+  logic:
+    steps:
+      # Phase 1: Process the communication
+      - action: python
+        code: |
+          # The outer LLM provides all the communication content directly
+          message = input.message
+          options = input.options or []
+          context_info = input.context or ''
+          
+          result = {
+              'message': message,
+              'options': options,
+              'context': context_info,
+              'communication_type': 'question' if options else 'message',
+              'requires_response': len(options) > 0
+          }
+        store_as: communication_data
+        
+      # Phase 2: Return the communication to user
+      - action: return_final_answer
+        answer: "{communication_data.message}"
+        response_type: "converse" 
+        layout_hint: "interactive"
+        response_data: "{communication_data}"
+
+# Clear input schema for outer LLM communication
+input_schema:
+  type: object
+  properties:
+    message:
+      type: string
+      description: "The message/question to communicate to the user (written by the outer LLM)"
+      examples: 
+        - "Which email template would you like to use?"
+        - "What date range should I use for this report?"
+        - "I found 15 contacts named John. Which one did you mean?"
+        - "Should I include archived records in this search?"
+      minLength: 5
+    options:
+      type: array
+      description: "Optional list of choices to present to the user"
+      items:
+        type: object
+        properties:
+          label:
+            type: string
+            description: "Display text for the option"
+          value:
+            type: string
+            description: "Value to return if user selects this option"
+          description:
+            type: string
+            description: "Optional explanation of what this option does"
+      examples:
+        - [{"label": "Demo Follow-up", "value": "demo_follow_up"}, {"label": "Meeting Request", "value": "meeting_request"}]
+        - [{"label": "Yes, include archived", "value": "include_archived"}, {"label": "No, active only", "value": "active_only"}]
+    context:
+      type: string
+      description: "Optional additional context for why you're asking (helps user understand)"
+      examples:
+        - "I need to know which template so I can personalize the email content"
+        - "This will determine what data gets included in your analytics"
+  required: ["message"]
+
+# Output schema for user communication
+output_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: "Whether the communication was processed successfully"
+    message:
+      type: string
+      description: "The message that was communicated to the user"
+    options:
+      type: array
+      description: "Options presented to the user (if any)"
+      items:
+        type: object
+        properties:
+          label:
+            type: string
+          value:
+            type: string
+          description:
+            type: string
+    communication_type:
+      type: string
+      description: "Type of communication (question, message, etc.)"
+    context:
+      type: string
+      description: "Additional context provided"
+    requires_response:
+      type: boolean
+      description: "Whether this communication requires a user response"
+  required: ["success", "message", "communication_type"]
+
+# No approval needed - just presenting questions
+requires_approval: false
+permissions: ["interactions:basic"]

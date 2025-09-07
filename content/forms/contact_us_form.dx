@@ -1,0 +1,106 @@
+# Contact Us Form - Declarative form configuration
+# Captures general inquiries and creates lead records for follow-up
+
+type: form
+name: contact_us_form
+title: Contact Us
+description: Simple contact form for general inquiries with automatic lead creation
+
+# Target configuration - convert inquiries to contacts for follow-up
+target_object: contact
+action: upsert
+match_conditions:
+  - field: email
+    value: "{form.email}"
+    operator: iequals
+on_no_match: create_new
+on_multiple_matches: update_first
+
+# Success/error handling
+success_message: "Thank you for contacting us! We'll get back to you soon."
+error_message: "There was an error sending your message. Please try again or contact us directly."
+
+# Form fields with mapping to lead schema
+fields:
+  - name: name
+    label: Full Name
+    type: text
+    required: true
+    placeholder: Enter your full name
+    description: "We'll use this to address you in our response"
+    # Split name into first/last name components
+    maps_to: contact.first_name
+    behavior: overwrite
+    validation:
+      min_length: 2
+      max_length: 100
+
+  - name: email
+    label: Email Address
+    type: email
+    required: true
+    placeholder: your.email@company.com
+    description: "We'll respond to this email address"
+    maps_to: contact.email
+    behavior: overwrite
+    validation:
+      pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+      custom_message: "Please enter a valid email address"
+
+  - name: message
+    label: Message
+    type: textarea
+    required: true
+    placeholder: How can we help you?
+    description: "Please provide details about your inquiry"
+    maps_to: contact.notes
+    behavior: overwrite
+    validation:
+      min_length: 10
+      max_length: 2000
+      custom_message: "Please provide at least 10 characters describing your inquiry"
+
+  # Hidden fields to set appropriate defaults for contact form leads
+  - name: source
+    type: hidden
+    default_value: website
+    maps_to: contact.notes
+    behavior: overwrite
+
+  - name: status
+    type: hidden
+    default_value: new
+    maps_to: contact.status
+    behavior: skip_if_exists
+
+# Notification settings
+notification_settings:
+  send_confirmation: true
+  notify_admin: true
+  admin_email: "contact@company.com"
+
+# Embed configuration for website integration
+embed:
+  domains: ["*.yourdomain.com", "localhost"]
+  style: "clean"
+  theme: "default"
+  submit_button:
+    label: "Send Message"
+    style: "primary"
+
+# Explicit hidden inputs to capture tracking and context
+hidden_inputs:
+  - name: dx_vid
+  - name: dx_sid
+  - name: site_key
+    value: dlx_main
+  - name: page_url
+  - name: referrer
+  
+# Additional automation trigger for immediate response
+automation_trigger:
+  automation: handle_contact_form
+  trigger_after: form_submission
+  pass_data: true
+
+

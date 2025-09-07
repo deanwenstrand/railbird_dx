@@ -1,0 +1,77 @@
+type: test
+name: contact_linking
+
+scenarios:
+  - name: link_contact_to_existing_account_by_domain
+    given:
+      - object: account
+        data:
+          company_name: "Automation TestCo"
+      - object: account_domain
+        data:
+          account_id: "{{account_id}}"
+          full_domain: "example.com"
+          registrable_domain: "example.com"
+          subdomain: null
+          scope: "both"
+          role: "primary"
+          shared_domain: false
+    when:
+      - find:
+          object: account_domain
+          where:
+            full_domain: "example.com"
+          capture: domain_row
+      - call:
+          method: POST
+          path: "/api/contacts"
+          body:
+            first_name: "Auto"
+            last_name: "Link"
+            email: "user@example.com"
+          capture: contact_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            event: step_finished
+            automation_id: contact_insert_link_or_create
+            step_type: action
+            status: ok
+          match_output_any:
+            - { linked: true }
+            - { created: true }
+          capture: last_event
+      - call:
+          method: GET
+          path: "/api/contacts/{{contact_id}}"
+          capture: contact
+    then:
+      - expect: domain_row.account_id
+        operator: "=="
+        value: "{{account_id}}"
+      - expect: contact.account_id
+        operator: "=="
+        value: "{{account_id}}"
+
+  - name: no_link_on_shared_domain
+    given: []
+    when:
+      - call:
+          method: POST
+          path: "/api/contacts"
+          body:
+            first_name: "Auto"
+            last_name: "Shared"
+            email: "user@gmail.com"
+          capture: contact_id
+      - delay_ms: 200
+      - call:
+          method: GET
+          path: "/api/contacts/{{contact_id}}"
+          capture: contact
+    then:
+      - expect: contact.account_id
+        operator: is_null
+

@@ -1,0 +1,49 @@
+type: action
+name: contact_final_link_check
+description: Ensure contact is linked to domain's account if not shared
+implementation: python
+enabled: true
+
+defaults:
+  code: |
+    info = _first or {}
+    dom = info.get('domain')
+    cid = info.get('contact_id')
+    if info.get('is_shared') or not dom or not cid:
+      return {'final_link': False}
+    AD = getattr(models, 'AccountDomain', None)
+    Contact = getattr(models, 'Contact', None)
+    if not AD or not Contact:
+      return {'final_link': False}
+    row = (
+      db.query(AD)
+        .filter(getattr(AD, 'full_domain') == dom)
+        .filter(getattr(AD, 'account_id').isnot(None))
+        .filter(getattr(AD, 'shared_domain').is_(False))
+        .order_by(getattr(AD, 'id').desc())
+        .first()
+    )
+    if not row or getattr(row, 'account_id') in (None, 0):
+      return {'final_link': False}
+    try:
+      c = db.get(Contact, cid) if hasattr(db, 'get') else db.query(Contact).get(cid)
+    except Exception:
+      c = db.query(Contact).get(cid)
+    if not c:
+      return {'final_link': False}
+    aid = getattr(row, 'account_id')
+    if getattr(c, 'account_id', None) != aid:
+      setattr(c, 'account_id', aid)
+      try:
+        db.flush()
+      except Exception:
+        pass
+      db.commit()
+      try:
+        db.refresh(c)
+      except Exception:
+        pass
+      return {'final_link': True, 'account_id': aid}
+    return {'final_link': False}
+
+

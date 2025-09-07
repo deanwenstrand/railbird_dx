@@ -1,0 +1,54 @@
+type: schema
+object: profile
+view_name: Profiles
+description: User/agent profile definitions
+deletion_mode: hard
+
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+
+fields:
+- name: id
+  view_name: ID
+  type: string
+  required: true
+  primary_key: true
+  system_managed: true
+
+- name: name
+  view_name: Name
+  type: string
+  required: true
+  length: 100
+
+- name: description
+  view_name: Description
+  type: textarea
+  required: false
+
+- name: eligible_for
+  view_name: Eligible For
+  type: picklist.excl
+  required: true
+  values:
+    - user
+    - agent
+    - both
+  default: both
+
+- name: created_at
+  view_name: Created At
+  type: datetime
+  required: true
+  system_managed: true
+
+- name: updated_at
+  view_name: Updated At
+  type: datetime
+  required: true
+  system_managed: true

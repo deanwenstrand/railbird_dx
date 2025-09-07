@@ -1,0 +1,43 @@
+type: schema
+object: web_visitor
+description: "Website visitor tracking with persistent cookie-based identity"
+system_managed: true
+
+fields:
+  - name: id
+    type: string
+    primary_key: true
+    system_managed: true
+    description: "Visitor ID (dx_vid) from persistent cookie"
+
+  - name: first_seen
+    type: datetime
+    required: true
+    system_managed: true
+    description: "When this visitor was first tracked"
+
+  - name: last_seen
+    type: datetime
+    required: true
+    system_managed: true
+    description: "Most recent activity timestamp"
+
+  - name: first_referrer
+    type: text
+    nullable: true
+    description: "Original referrer URL when visitor first arrived"
+
+  - name: created_at
+    type: datetime
+    required: true
+    system_managed: true
+
+  - name: updated_at
+    type: datetime
+    required: true
+    system_managed: true
+
+  - name: deleted_at
+    type: datetime
+    nullable: true
+    system_managed: true

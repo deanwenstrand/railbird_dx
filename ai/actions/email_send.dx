@@ -1,0 +1,157 @@
+type: action
+name: email_send
+description: "Send emails to contacts with optional AI-generated content"
+version: 1.0
+agent_access: ["crm_coordinator"]
+
+# LLM Integration Metadata
+ai:
+  when_to_use: "When user wants to send an email to someone, either with provided content or AI-generated content"
+  examples:
+    - "send John an email about our demo"
+    - "email the CEO about pricing"
+    - "send Sarah a follow-up message"
+    - "email that contact about the meeting"
+  effect: write
+  priority: high
+  tags: ["email", "send", "communication", "outreach"]
+
+# Use DSL logic for email sending workflow with inline approval
+implementation:
+  type: dsl_logic
+  logic:
+    steps:
+      # Step 1: Get recipient contact information (safe - no approval needed)
+      - action: query_record
+        table: contact
+        record_id: "{input.recipient_id}"
+        store_as: recipient_data
+        
+      # Step 2: Generate complete email content with AI (always - no conditional) 
+      - action: ai_generate
+        system_prompt: |
+          You are an AI email assistant. Generate professional, personalized email content.
+          
+          Based on the template type and context provided:
+          - demo_follow_up: Follow up on demo/product showcase
+          - pricing_info: Share pricing and product information  
+          - meeting_request: Request or follow up on meetings
+          - general: General professional communication
+          
+          Generate both subject and body. Use the recipient's name and any provided context.
+          If user provided content, enhance and improve it professionally.
+          
+          Return JSON with: {"subject": "email subject", "body": "email body content"}
+        context:
+          contact: "{recipient_data}"
+          user: "{user_context}"
+          custom_message: "{input.custom_message}"
+          user_provided_body: "{input.body}"
+          email_template: "{input.email_template}"
+        store_as: generated_content
+            
+      # Step 3: INLINE APPROVAL - Show AI-generated draft
+      - action: require_approval
+        message: "Send this email to {recipient_data.first_name} {recipient_data.last_name}?"
+        context:
+          recipient_data: "{recipient_data}"
+          email_subject: "{generated_content.subject}"
+          email_body: "{generated_content.body}"
+          
+      # Step 4: Send the AI-generated email (dangerous - runs after approval)
+      - action: send_email
+        to: "{recipient_data.email}"
+        subject: "{generated_content.subject}"
+        body: "{generated_content.body}"
+        store_as: email_result
+
+# Input schema
+input_schema:
+  type: object
+  properties:
+    recipient_id:
+      type: string
+      description: "ID of the contact to send email to"
+      minLength: 1
+    subject:
+      type: string
+      description: "Initial email subject (will be enhanced by AI)"
+      maxLength: 200
+    body:
+      type: string
+      description: "Initial email body content (will be enhanced by AI)"
+    email_template:
+      type: string
+      description: "Template to use for AI content generation"
+      enum: ["demo_follow_up", "pricing_info", "meeting_request", "general"]
+    custom_message:
+      type: string
+      description: "Additional context for AI content generation"
+      maxLength: 500
+    send_copy_to_self:
+      type: boolean
+      description: "Send a copy to the user's email"
+      default: false
+  required: ["recipient_id"]
+
+# Output schema
+output_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: "Whether the email was sent successfully"
+    email_sent:
+      type: boolean
+      description: "Confirmation that email was delivered"
+    message_id:
+      type: string
+      description: "Unique identifier for the sent email"
+    recipient:
+      type: object
+      description: "Information about the recipient"
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+    subject:
+      type: string
+      description: "Final email subject that was sent"
+    content_generated:
+      type: boolean
+      description: "Whether content was AI-generated"
+    sent_at:
+      type: string
+      format: date-time
+      description: "Timestamp when email was sent"
+    llm_feedback:
+      type: string
+      description: "Human-readable summary for the LLM"
+  required: ["success", "email_sent"]
+
+approval_layout: EmailApprovalLayout
+permissions: ["email:send", "contacts:read", "activities:create"]
+
+# Error handling
+error_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+      const: false
+    error_code:
+      type: string
+      enum: ["RECIPIENT_NOT_FOUND", "INVALID_EMAIL", "EMAIL_SERVICE_ERROR", "PERMISSION_DENIED", "CONTENT_GENERATION_FAILED"]
+    error_message:
+      type: string
+      description: "Human-readable error message"
+    recipient_id:
+      type: string
+      description: "ID of the intended recipient"
+    llm_feedback:
+      type: string
+      description: "LLM-friendly error explanation"
+  required: ["success", "error_code", "error_message", "llm_feedback"]

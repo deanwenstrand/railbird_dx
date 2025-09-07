@@ -1,0 +1,30 @@
+type: report
+name: contacts_report
+title: Contact List Report
+description: "Tabular report showing contact information"
+source: contact
+
+fields:
+  - first_name
+  - last_name
+  - email
+  - phone
+  - status
+  - created_at
+
+options:
+  pagination: true
+  page_size: 50
+  sortable: true
+  filterable: true
+
+filters:
+  - field: status
+    type: string
+    operator: equals
+    label: Status
+    
+  - field: last_name
+    type: string
+    operator: contains
+    label: Last Name

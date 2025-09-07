@@ -1,0 +1,46 @@
+type: content
+name: contact_capture_notification
+content_type: email_template
+description: "Confirmation email sent to the contact after submitting the contact form"
+
+template:
+  subject: "Thanks, {{first_name}} — we received your details ✅"
+  format: plain_text
+  body: |
+    Hi {{first_name}},
+
+    Thanks for getting in touch — we received your information and a member of our team will follow up shortly.
+
+    Here’s what we have on file:
+    - Name: {{first_name}} {{last_name}}
+    - Email: {{email}}
+    - Phone: {{phone}}
+
+    What happens next:
+    - We’ll review your details and get back to you within 1 business day.
+    - If there’s anything to add or correct, just reply to this email.
+
+    Talk soon,
+    The Team
+
+    —
+    If you didn’t submit this, feel free to ignore this message.
+
+variables:
+  - name: id
+    type: string
+    required: false
+  - name: first_name
+    type: string
+    required: false
+  - name: last_name
+    type: string
+    required: false
+  - name: email
+    type: string
+    required: false
+  - name: phone
+    type: string
+    required: false
+
+

@@ -1,0 +1,12 @@
+type: action
+name: contact_set_owner
+description: "Set contact.assigned_to"
+implementation: update_field
+enabled: true
+
+defaults:
+  table: contact
+  field: assigned_to
+  value: null
+
+

@@ -1,0 +1,28 @@
+type: automation
+name: contact_insert_link_or_create
+description: Link contact to an account by email domain; shared domains remain unlinked; otherwise create account and account_domain
+enabled: true
+
+trigger:
+  type: database_event
+  on: record_created
+  tables: [contact]
+
+# Multi-step flow:
+# 1) Extract email domain and classify as shared/non-shared
+# 2) If matches existing Account Domain with account_id, link contact
+# 3) If shared, stop; else create Account and Account Domain, then link
+actions:
+  - ref: contact_extract_domain
+  - ref: contact_link_if_existing_domain
+  - ref: contact_create_account_and_domain
+
+  - type: invoke_automation
+    automation_id: contact_routing
+    payload:
+      contact_id: "{{results.action_python_0.contact_id}}"
+      account_id: "{{results.action_python_2.account_id}}"
+
+
+  - ref: contact_final_link_check
+

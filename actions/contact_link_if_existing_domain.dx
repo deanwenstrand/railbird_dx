@@ -1,0 +1,48 @@
+type: action
+name: contact_link_if_existing_domain
+description: Link contact to existing Account via AccountDomain if present
+implementation: python
+enabled: true
+
+defaults:
+  code: |
+    info = _first or {}
+    dom = info.get('domain')
+    cid = info.get('contact_id')
+    if not dom or not cid:
+      return {'linked': False}
+    AD = getattr(models, 'AccountDomain', None)
+    Contact = getattr(models, 'Contact', None)
+    if not AD or not Contact:
+      return {'linked': False}
+    row = (
+      db.query(AD)
+        .filter(getattr(AD, 'full_domain') == dom)
+        .filter(getattr(AD, 'account_id').isnot(None))
+        .filter(getattr(AD, 'shared_domain').is_(False))
+        .order_by(getattr(AD, 'id').desc())
+        .first()
+    )
+    if not row or getattr(row, 'account_id') in (None, 0):
+      return {'linked': False}
+    try:
+      c = db.get(Contact, cid) if hasattr(db, 'get') else db.query(Contact).get(cid)
+    except Exception:
+      c = db.query(Contact).get(cid)
+    if not c:
+      return {'linked': False}
+    aid = getattr(row, 'account_id')
+    if getattr(c, 'account_id', None) != aid:
+      setattr(c, 'account_id', aid)
+      try:
+        db.flush()
+      except Exception:
+        pass
+      db.commit()
+      try:
+        db.refresh(c)
+      except Exception:
+        pass
+    return {'linked': True, 'account_id': aid}
+
+

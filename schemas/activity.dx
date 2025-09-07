@@ -1,0 +1,162 @@
+type: schema
+object: activity
+view_name: Activities
+description: Represents an interaction/activity.
+deletion_mode: soft
+endpoints:
+  - GET    # List all activities
+  - POST   # Create new activity
+  - GET /{id}    # Get specific activity
+  - PUT /{id}    # Update entire activity
+  - PATCH /{id}  # Partial update activity
+  - DELETE /{id} # Delete activity
+## object_layout removed – detail pages are always available via default layout fallback
+add_to_top_nav: false  # Not a main nav item, just related lists
+search:
+  enabled: true
+  label: "Activities"
+fields:
+- name: id
+  view_name: Id
+  type: string
+  required: true
+  primary_key: true
+  system_managed: true
+
+# Type: Call, Email, Meeting, Message, Social, Other
+- name: type
+  view_name: Type
+  type: picklist.excl
+  required: true
+  values:
+  - Call
+  - Email
+  - Meeting
+  - Message
+  - Social
+  - Other
+
+# Direction: Outbound, Inbound
+- name: direction
+  view_name: Direction
+  type: picklist.excl
+  required: true
+  values:
+  - Outbound
+  - Inbound
+
+# Internal User (FK)
+- name: internal_user_id
+  view_name: Internal User
+  type: string
+  required: false
+  foreign_key:
+    table: user
+    column: id
+
+# External Contact (FK) or External Party (string)
+- name: external_contact_id
+  view_name: External Contact
+  type: string
+  required: false
+  foreign_key:
+    table: contact
+    column: id
+    kind: lookup
+    on_delete: nullify
+- name: external_party
+  view_name: External Party
+  type: string
+  required: false
+  length: 200
+
+# Status: Scheduled, Completed, NoShow, Canceled
+- name: status
+  view_name: Status
+  type: picklist.excl
+  required: true
+  values:
+  - Scheduled
+  - Completed
+  - NoShow
+  - Canceled
+  default: Scheduled
+
+# Outcome: Positive, Neutral, Negative, Unknown
+- name: outcome
+  view_name: Outcome
+  type: picklist.excl
+  required: false
+  values:
+  - Positive
+  - Neutral
+  - Negative
+  - Unknown
+
+# Timestamp
+- name: timestamp
+  view_name: Timestamp
+  type: datetime
+  required: true
+
+# Related to: Signal, Contact, Opportunity, or Account
+- name: signal_id
+  view_name: Signal
+  type: string
+  required: false
+  foreign_key:
+    table: intent_signal
+    column: id
+- name: contact_id
+  view_name: Contact
+  type: string
+  required: false
+  foreign_key:
+    table: contact
+    column: id
+    kind: lookup
+    on_delete: nullify
+- name: opportunity_id
+  view_name: Opportunity
+  type: string
+  required: false
+  foreign_key:
+    table: opportunity
+    column: id
+    kind: lookup
+    on_delete: nullify
+- name: account_id
+  view_name: Account
+  type: string
+  required: false
+  foreign_key:
+    table: account
+    column: id
+    kind: lookup
+    on_delete: nullify
+
+
+# System-managed audit fields
+- name: created_at
+  view_name: Created At
+  type: datetime
+  required: false
+  system_managed: true
+
+- name: updated_at
+  view_name: Updated At
+  type: datetime
+  required: false
+  system_managed: true
+
+- name: deleted_at
+  view_name: Deleted At
+  type: datetime
+  required: false
+  system_managed: true
+
+- name: search_vector
+  view_name: Search Vector
+  type: string
+  required: false
+  system_managed: true

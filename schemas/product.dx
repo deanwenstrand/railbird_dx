@@ -1,0 +1,53 @@
+type: schema
+object: product
+view_name: Products
+add_to_global_nav: false
+## object_layout removed – detail pages are always available via default layout fallback
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+fields:
+  - name: id
+    view_name: Id
+    type: string
+    required: true
+    primary_key: true
+    system_managed: true
+  - name: sku
+    view_name: SKU
+    type: string
+    required: true
+    length: 64
+  - name: name
+    view_name: Name
+    type: string
+    required: true
+    length: 200
+  - name: list_price
+    view_name: List Price
+    type: number
+    required: false
+  - name: active
+    view_name: Active
+    type: boolean
+    required: true
+    default: true
+
+  # System-managed audit fields
+  - name: created_at
+    view_name: Created At
+    type: datetime
+    required: false
+    system_managed: true
+
+  - name: updated_at
+    view_name: Updated At
+    type: datetime
+    required: false
+    system_managed: true
+
+

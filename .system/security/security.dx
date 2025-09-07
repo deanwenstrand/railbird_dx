@@ -1,0 +1,78 @@
+type: security_policy
+
+# Minimal RBAC+ABAC policy (no roles; principals are users or agents)
+permission_sets:
+  all: [create, read, search, update, delete]
+
+permissions:
+  # Object permissions per action
+  account:
+    - action: create
+      profiles: [sales_rep]
+    - action: read
+      profiles: [sales_rep]
+    - action: search
+      profiles: [sales_rep]
+    - action: update
+      profiles: [sales_manager]
+    - action: delete
+      profiles: []
+    - action: VIEW_FINANCIALS
+      profiles: [sales_manager]
+  contact:
+    - action: create
+      profiles: [sales_rep, admin]
+    - action: read
+      profiles: [sales_rep, admin]
+    - action: search
+      profiles: [sales_rep, admin]
+    - action: update
+      profiles: [sales_manager, admin]
+    - action: delete
+      profiles: [admin]
+  '*':
+    - set: all
+      profiles: [admin]
+  endpoint:
+    - action: execute
+      profiles: [admin]
+
+profiles:
+  sales_rep:
+    name: Sales Rep
+    eligible_for: both
+    description: Basic sales user with regional access
+  sales_manager:
+    name: Sales Manager
+    eligible_for: user
+    description: Manager with financial visibility
+  admin:
+    name: Admin
+    eligible_for: user
+    description: Administration profile
+
+abac_rules:
+  # Expressions are SQL fragments evaluated in RLS USING clauses
+  regional_wall:
+    applies_to_object: account
+    expression: "region = current_setting('pb.principal_region', true)"
+  owner_wall:
+    applies_to_object: account
+    expression: "owner_id = current_setting('pb.principal_id', true)"
+
+field_masks:
+  account:
+    - field: arr
+      mask: currency_last4
+      unless_permission: { action: VIEW_FINANCIALS }
+
+temporary_permissions:
+  # Example: grant a specific user/agent a permission temporarily (evaluated at runtime)
+  # These are realized via rows in principal_permission table; this section is metadata only
+  examples:
+    - principal_kind: user
+      principal_id: example-user-id
+      permission: { object: account, action: VIEW_FINANCIALS }
+      expires_in: 3600
+
+

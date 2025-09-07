@@ -1,0 +1,54 @@
+type: schema
+object: agent
+view_name: Agents
+description: API agents as first-class principals
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+fields:
+  - name: id
+    type: string
+    primary_key: true
+    required: true
+    system_managed: true
+  - name: name
+    type: string
+    required: true
+    unique: true
+  - name: api_key_hash
+    type: string
+    required: true
+    unique: true
+  - name: profile_id
+    type: string
+    required: true
+    foreign_key:
+      table: profile
+      column: id
+  - name: region
+    type: string
+    required: false
+  - name: department
+    type: string
+    required: false
+  - name: is_active
+    type: boolean
+    required: true
+    default: true
+
+  # System fields
+  - name: created_at
+    type: datetime
+    required: true
+    system_managed: true
+
+  - name: updated_at
+    type: datetime
+    required: true
+    system_managed: true
+
+

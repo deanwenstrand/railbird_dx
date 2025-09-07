@@ -1,0 +1,82 @@
+type: layout
+name: contact
+add_to_global_nav: true
+weight: 150
+description: the default contact layout
+
+components:
+  - type: action
+    name: create_opportunity
+    view_name: Create Opportunity
+    location: top_actions
+    action: create_opportunity_from_contact
+  - type: field_section
+    name: basic_info
+    view_name: Contact Information
+    location: main
+    layout: two_column
+    fields:
+      - first_name
+      - last_name
+      - name: email
+        style_override:
+          color: "#0070d2"
+          font_weight: bold
+      - phone
+      - mobile_phone
+      - title
+      - department
+      - assigned_to
+      - account_id
+      - status
+
+  - type: field_section
+    name: address
+    view_name: Address
+    location: main
+    layout: two_column
+    fields:
+      - address
+      - city
+      - state
+      - postal_code
+      - country
+
+  - type: field_section
+    name: preferences
+    view_name: Preferences
+    location: main
+    layout: two_column
+    fields:
+      - preferred_contact_method
+      - notes
+
+  # Removed account related_list; contact.account is many-to-one and should display as a single field (use field section)
+
+  - type: related_list
+    name: contact_signals
+    view_name: Intent Signals
+    location: top_navigation
+    data: intent_signal
+    limit: 10
+    fields:
+      - name: title
+      - signal_type
+      - category
+      - channel
+      - status
+      - detected_at
+
+  - type: related_list
+    name: contact_web_visitors
+    view_name: Website Visitors
+    location: top_navigation
+    data: web_visitor_contact
+    limit: 10
+    fields:
+      - visitor_id
+      - source
+      - first_linked_at
+      - created_at
+
+

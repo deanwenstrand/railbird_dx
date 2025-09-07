@@ -1,0 +1,108 @@
+# Contact Capture Form - Declarative form configuration
+# Uses declarative syntax for form-to-object mapping
+
+type: form
+name: contact_capture_form
+title: Contact Capture Form
+description: Contact creation form with automatic upsert by email
+
+# Target configuration
+target_object: contact
+action: upsert
+match_conditions:
+  - field: email
+    value: "{form.email}"
+    operator: iequals
+on_no_match: create_new
+on_multiple_matches: update_first
+default_behavior: overwrite
+
+# Success/error handling
+success_message: "Thanks! Your contact has been submitted successfully."
+error_message: "There was an error processing your submission. Please try again."
+
+# Form fields with schema inheritance
+fields:
+  - maps_to: contact.first_name
+    placeholder: Enter your first name
+    behavior: overwrite
+
+  - maps_to: contact.last_name
+    placeholder: Enter your last name
+    behavior: overwrite
+
+  - maps_to: contact.email
+    placeholder: user@company.com
+    behavior: overwrite
+
+  - maps_to: contact.phone
+    placeholder: (555) 123-4567
+    behavior: overwrite
+
+  - maps_to: contact.mobile_phone
+    placeholder: (555) 987-6543
+    behavior: overwrite
+
+  - maps_to: contact.title
+    placeholder: Job Title
+    behavior: overwrite
+
+  - maps_to: contact.department
+    placeholder: Department
+    behavior: overwrite
+
+  - maps_to: contact.preferred_contact_method
+    default_value: email
+    label: Preferred Contact Method
+
+  - maps_to: contact.status
+    default_value: active
+    label: Status
+
+  - maps_to: contact.address
+    label: Street Address
+    placeholder: 123 Main St
+    behavior: overwrite
+
+  - maps_to: contact.city
+    placeholder: City
+    behavior: overwrite
+
+  - maps_to: contact.state
+    placeholder: State/Province
+    behavior: overwrite
+
+  - maps_to: contact.postal_code
+    placeholder: ZIP/Postal Code
+    behavior: overwrite
+
+  - maps_to: contact.country
+    placeholder: Country
+    behavior: overwrite
+
+  - maps_to: contact.notes
+    label: Notes
+    placeholder: Additional notes about this contact...
+    behavior: append
+
+# Embed configuration for website integration
+embed:
+  domains: ["*.yourdomain.com", "localhost"]
+  style: "minimal"
+  theme: "default"
+  submit_button:
+    label: "Submit Contact"
+    style: "primary"
+
+
+# Explicit hidden inputs to capture tracking and context
+hidden_inputs:
+  - name: dx_vid
+  - name: dx_sid
+  - name: site_key
+    value: dlx_main
+  - name: page_url
+  - name: referrer
+
+
+

@@ -1,0 +1,144 @@
+type: action
+name: task_create
+description: "Create a new task, optionally linked to contacts or other records"
+version: 1.0
+
+# LLM Integration Metadata
+ai:
+  when_to_use: "When user wants to create tasks, set reminders, or schedule follow-ups. Perfect for workflows like 'create a follow-up task for next week' or 'remind me to call John in 3 days'"
+  examples:
+    - "create a follow-up task for next week"
+    - "remind me to call John in 3 days"
+    - "add a task to follow up with Sarah"
+    - "create a high priority task to review the proposal"
+  effect: write
+  priority: medium
+  tags: ["task", "create", "reminder", "follow-up", "todo"]
+
+# Use DSL logic for task creation workflow
+implementation:
+  type: dsl_logic
+  logic:
+    steps:
+      # Step 1: Look up related object if specified (using query_record directly)
+      - action: query_record
+        table: "{input.related_object_type}"
+        record_id: "{input.related_object_id}"
+        store_as: related_object_data
+        when: "{input.related_object_type and input.related_object_id}"
+        
+      # Step 2: Show approval dialog before creating task
+      - action: require_approval
+        message: "Create this task?"
+        context:
+          task_title: "{input.title}"
+          task_notes: "{input.notes}"
+          task_priority: "{input.priority or 'medium'}"
+          task_due_date: "{input.due_date}"
+          related_object_data: "{related_object_data}"
+          
+      # Step 3: Create the task record via API call (after approval)
+      - action: api_call
+        method: POST
+        endpoint: "/api/tasks"
+        data:
+          title: "{input.title}"
+          notes: "{input.notes}"
+          status: "todo"
+          priority: "{input.priority or 'medium'}"
+          due_date: "{input.due_date}"
+          assigned_to: "{input.assigned_to or user_context.user_id}"
+          created_by: "{user_context.user_id}"
+          related_object_type: "{input.related_object_type}"
+          related_object_id: "{input.related_object_id}"
+        store_as: created_task
+
+input_schema:
+  type: object
+  properties:
+    title:
+      type: string
+      description: Task title/subject - what needs to be done
+      minLength: 1
+      maxLength: 200
+    notes:
+      type: string
+      description: Additional details, context, or instructions for the task
+      maxLength: 1000
+    due_date:
+      type: string
+      format: date-time
+      description: When the task is due (ISO datetime format)
+    priority:
+      type: string
+      description: Task priority level
+      enum: ["low", "medium", "high", "urgent"]
+      default: "medium"
+    related_object_type:
+      type: string
+      description: Type of object this task relates to (contact, account, opportunity, etc.)
+      enum: ["contact", "account", "opportunity", "campaign", "activity"]
+    related_object_id:
+      type: string
+      description: ID of the related object (e.g., contact ID if this is a follow-up task)
+    assigned_to:
+      type: string
+      description: User ID to assign the task to (will default to current user if not specified)
+  required:
+    - title
+
+output_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: Whether the task was created successfully
+    task_created:
+      type: boolean
+      description: Confirmation that task was created
+    task_id:
+      type: string
+      description: Unique identifier for the created task
+    task:
+      type: object
+      description: Full task details
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        notes:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        due_date:
+          type: string
+          format: date-time
+        assigned_to:
+          type: string
+        created_by:
+          type: string
+        related_object_type:
+          type: string
+        related_object_id:
+          type: string
+    related_object:
+      type: object
+      description: Details of the linked object (contact, account, etc.) if applicable
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+    llm_feedback:
+      type: string
+      description: Human-readable summary for the LLM about what was accomplished
+  required:
+    - success
+    - task_created
+
+permissions: ["tasks:create", "tasks:read"]

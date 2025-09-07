@@ -1,0 +1,291 @@
+type: ai_layout
+name: DataAnalytics
+description: Smart data visualization layout with nested duck-typing for different chart types
+
+components:
+  - name: data_analytics_display
+    type: react_component
+    location: main
+    react: |
+      import React from 'react';
+      
+      // Get the result from rich response structure (new) or fallback to context (legacy)
+      const result = response_data || context.formatted_result || {};
+      const chartType = result.chart_type || 'metric';
+      const success = result.success !== false;
+      
+      // Error state
+      if (!success) {
+        return (
+          <div className="border border-red-200 bg-red-50 rounded-lg p-4">
+            <div className="flex items-center space-x-2 mb-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <span className="text-sm font-medium text-red-900">Analytics Error</span>
+            </div>
+            <div className="text-sm text-red-700">
+              {result.error_message || 'Failed to process analytics query'}
+            </div>
+            {result.suggestions && result.suggestions.length > 0 && (
+              <div className="mt-3">
+                <div className="text-xs font-medium text-red-600 mb-1">Try these instead:</div>
+                <ul className="text-xs text-red-600 space-y-1">
+                  {result.suggestions.slice(0, 3).map((suggestion, idx) => (
+                    <li key={idx}>• {suggestion}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        );
+      }
+      
+      // Metric Display Component
+      const MetricDisplay = ({ value, label, summary }) => (
+        <div className="text-center">
+          <div className="text-3xl font-bold text-blue-600 mb-2">
+            {typeof value === 'number' ? value.toLocaleString() : value || '—'}
+          </div>
+          <div className="text-sm text-stone-600 mb-1">{label}</div>
+          <div className="text-xs text-stone-500">{summary}</div>
+        </div>
+      );
+      
+      // Bar Chart Component  
+      const BarChart = ({ data, title }) => (
+        <div className="space-y-3">
+          <div className="text-sm font-medium text-stone-700 mb-3">{title}</div>
+          <div className="space-y-2">
+            {data && data.slice(0, 10).map((item, idx) => {
+              const maxValue = Math.max(...data.map(d => d.value || 0));
+              const percentage = maxValue > 0 ? ((item.value || 0) / maxValue * 100) : 0;
+              return (
+                <div key={idx} className="flex items-center space-x-3">
+                  <div className="w-20 text-xs text-stone-600 truncate">
+                    {item.label}
+                  </div>
+                  <div className="flex-1 bg-stone-100 rounded-full h-6 relative">
+                    <div 
+                      className="bg-blue-500 h-full rounded-full flex items-center justify-end pr-2"
+                      style={{ width: `${Math.max(percentage, 2)}%` }}
+                    >
+                      <span className="text-white text-xs font-medium">
+                        {item.value || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+      
+      // Pie Chart Component
+      const PieChart = ({ data, title }) => (
+        <div className="space-y-3">
+          <div className="text-sm font-medium text-stone-700 mb-3">{title}</div>
+          <div className="space-y-2">
+            {data && data.slice(0, 8).map((item, idx) => {
+              const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 
+                            'bg-red-500', 'bg-indigo-500', 'bg-pink-500', 'bg-gray-500'];
+              const colorClass = colors[idx % colors.length];
+              return (
+                <div key={idx} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${colorClass}`}></div>
+                    <span className="text-xs text-stone-600">{item.label}</span>
+                  </div>
+                  <div className="text-xs font-medium text-stone-800">
+                    {item.value} ({item.percentage || 0}%)
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+      
+      // Line Chart Component
+      const LineChart = ({ data, title }) => {
+        if (!data || data.length === 0) {
+          return (
+            <div className="space-y-3">
+              <div className="text-sm font-medium text-stone-700 mb-3">{title}</div>
+              <div className="text-xs text-stone-500 p-3 bg-stone-50 rounded">
+                No data available for line chart
+              </div>
+            </div>
+          );
+        }
+
+        const values = data.map(d => d.value || 0);
+        const minValue = Math.min(...values);
+        const maxValue = Math.max(...values);
+        const range = maxValue - minValue || 1;
+
+        return (
+          <div className="space-y-3">
+            <div className="text-sm font-medium text-stone-700 mb-3">{title}</div>
+            <div className="relative bg-white border border-stone-200 rounded p-4">
+              {/* Chart area */}
+              <div className="relative h-48 w-full">
+                {/* Y-axis labels */}
+                <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-stone-500 pr-2">
+                  <span>{maxValue.toLocaleString()}</span>
+                  <span>{Math.round((minValue + maxValue) / 2).toLocaleString()}</span>
+                  <span>{minValue.toLocaleString()}</span>
+                </div>
+                
+                {/* Grid lines */}
+                <div className="absolute left-8 right-0 top-0 h-full">
+                  <div className="h-full border-l border-stone-200 relative">
+                    <div className="absolute top-0 w-full border-t border-stone-100"></div>
+                    <div className="absolute top-1/2 w-full border-t border-stone-100"></div>
+                    <div className="absolute bottom-0 w-full border-t border-stone-100"></div>
+                  </div>
+                </div>
+                
+                {/* Chart line */}
+                <div className="absolute left-8 right-0 top-0 h-full">
+                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <polyline
+                      fill="none"
+                      stroke="#3b82f6"
+                      strokeWidth="0.5"
+                      points={data.map((item, idx) => {
+                        const x = (idx / Math.max(data.length - 1, 1)) * 100;
+                        const y = 100 - ((item.value - minValue) / range) * 100;
+                        return `${x},${y}`;
+                      }).join(' ')}
+                    />
+                    {/* Data points */}
+                    {data.map((item, idx) => {
+                      const x = (idx / Math.max(data.length - 1, 1)) * 100;
+                      const y = 100 - ((item.value - minValue) / range) * 100;
+                      return (
+                        <circle
+                          key={idx}
+                          cx={x}
+                          cy={y}
+                          r="1"
+                          fill="#3b82f6"
+                          className="hover:r-2"
+                        />
+                      );
+                    })}
+                  </svg>
+                </div>
+              </div>
+              
+              {/* X-axis labels */}
+              <div className="flex justify-between mt-2 ml-8 text-xs text-stone-500">
+                {data.length > 1 && (
+                  <>
+                    <span>{data[0].label}</span>
+                    {data.length > 2 && data.length <= 5 && (
+                      data.slice(1, -1).map((item, idx) => (
+                        <span key={idx}>{item.label}</span>
+                      ))
+                    )}
+                    <span>{data[data.length - 1].label}</span>
+                  </>
+                )}
+              </div>
+              
+              {/* Data summary */}
+              <div className="mt-3 text-xs text-stone-500 text-center">
+                {data.length} data points • Range: {minValue.toLocaleString()} - {maxValue.toLocaleString()}
+              </div>
+            </div>
+          </div>
+        );
+      };
+      
+      // Data Table Component
+      const DataTable = ({ data, columns, title }) => (
+        <div className="space-y-3">
+          <div className="text-sm font-medium text-stone-700 mb-3">{title}</div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-xs">
+              <thead className="bg-stone-50">
+                <tr>
+                  {columns && columns.slice(0, 4).map((col, idx) => (
+                    <th key={idx} className="px-2 py-1 text-left font-medium text-stone-600 border-b">
+                      {col.label || col.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data && data.slice(0, 8).map((row, idx) => (
+                  <tr key={idx} className="border-b">
+                    {columns && columns.slice(0, 4).map((col, colIdx) => (
+                      <td key={colIdx} className="px-2 py-1 text-stone-700">
+                        {row[col.name] || '—'}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {data && data.length > 8 && (
+              <div className="text-xs text-stone-500 mt-2 text-center">
+                ... and {data.length - 8} more rows
+              </div>
+            )}
+          </div>
+        </div>
+      );
+      
+      // Duck-type the visualization based on chart_type
+      const renderVisualization = () => {
+        switch(chartType) {
+          case 'bar_chart':
+            return <BarChart data={result.chart_data} title={result.summary} />;
+          case 'pie_chart':
+            return <PieChart data={result.chart_data} title={result.summary} />;
+          case 'line_chart':
+            return <LineChart data={result.chart_data} title={result.summary} />;
+          case 'table':
+            return <DataTable data={result.chart_data} columns={result.columns} title={result.summary} />;
+          case 'metric':
+          default:
+            return <MetricDisplay value={result.value} label={result.label} summary={result.summary} />;
+        }
+      };
+      
+      return (
+        <div className="border border-stone-200 bg-white rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="bg-stone-50 px-4 py-3 border-b border-stone-200">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span className="text-sm font-medium text-stone-900">Data Analytics</span>
+              {result.query_info && (
+                <span className="text-xs text-stone-500">
+                  • {result.query_info.object_type || 'query'}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Main Visualization */}
+          <div className="p-4">
+            {renderVisualization()}
+          </div>
+          
+          {/* Footer with debug info */}
+          {result.query_info && (
+            <div className="bg-stone-50 px-4 py-2 border-t border-stone-200">
+              <div className="text-xs text-stone-500">
+                {result.raw_count !== undefined && (
+                  <span>Found {result.raw_count} records</span>
+                )}
+                {result.query_info.filters_applied && result.query_info.filters_applied.length > 0 && (
+                  <span> • {result.query_info.filters_applied.length} filters applied</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );

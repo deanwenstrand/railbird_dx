@@ -1,0 +1,61 @@
+type: schema
+object: permission
+view_name: Permissions
+description: System permission definitions
+deletion_mode: hard
+
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+
+fields:
+- name: id
+  view_name: ID
+  type: string
+  required: true
+  primary_key: true
+  system_managed: true
+
+- name: object_name
+  view_name: Object Name
+  type: string
+  required: true
+  length: 100
+  validation:
+    min_length: 1
+
+- name: action
+  view_name: Action
+  type: string
+  required: true
+  length: 50
+  validation:
+    min_length: 1
+
+- name: field_name
+  view_name: Field Name
+  type: string
+  required: false
+  length: 100
+
+- name: feature_flag
+  view_name: Feature Flag
+  type: string
+  required: false
+  length: 100
+
+- name: created_at
+  view_name: Created At
+  type: datetime
+  required: true
+  system_managed: true
+
+- name: updated_at
+  view_name: Updated At
+  type: datetime
+  required: true
+  system_managed: true

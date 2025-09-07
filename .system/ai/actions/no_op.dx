@@ -1,0 +1,44 @@
+type: action
+name: no_op
+description: "Stop processing ONLY for dangerous/impossible requests - use 'converse' for unclear input instead"
+implementation: system
+version: 1.0
+enabled: true
+
+ai:
+  effect: read
+  when_to_use: "ONLY for dangerous/impossible requests - NEVER for conversational input. Use 'converse' instead for unclear/vague requests"
+  examples: ["User asks to delete all company data", "Request involves illegal activity", "User asks to access forbidden systems", "Request would cause permanent data loss"]
+  tags: [control, system, termination]
+  priority: medium
+
+input_schema:
+  type: object
+  properties:
+    reason:
+      type: string
+      description: "Clear explanation of why processing is stopping"
+      minLength: 10
+      maxLength: 500
+    suggestion:
+      type: string
+      description: "Optional suggestion for what the user could try instead"
+      maxLength: 300
+  required: [reason]
+
+output_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: "Whether the no-op was executed successfully"
+    reason:
+      type: string
+      description: "Why processing stopped"
+    suggestion:
+      type: string
+      description: "Alternative suggestion if provided"
+  required: [success, reason]
+
+requires_approval: false
+permissions: []

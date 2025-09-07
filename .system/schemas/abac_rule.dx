@@ -1,0 +1,50 @@
+type: schema
+object: abac_rule
+view_name: ABAC Rules
+description: ABAC expressions for RLS generation
+deletion_mode: soft
+
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+
+fields:
+- name: id
+  type: string
+  primary_key: true
+  required: true
+  system_managed: true
+
+- name: name
+  type: string
+  required: true
+  unique: true
+
+- name: applies_to_object
+  type: string
+  required: true
+
+- name: expression
+  type: string
+  required: true
+
+- name: created_at
+  type: datetime
+  required: true
+  system_managed: true
+
+- name: updated_at
+  type: datetime
+  required: true
+  system_managed: true
+
+- name: deleted_at
+  type: datetime
+  required: false
+  system_managed: true
+
+

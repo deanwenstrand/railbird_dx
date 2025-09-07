@@ -1,0 +1,78 @@
+type: schema
+object: tag_assignment
+view_name: Tag Assignments
+description: Links tags to objects (intent_signal, contact, account)
+
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+
+fields:
+  - name: id
+    view_name: Id
+    type: string
+    required: true
+    primary_key: true
+    system_managed: true
+
+  - name: tag_id
+    view_name: Tag
+    type: string
+    required: true
+    foreign_key:
+      table: tag
+      column: id
+
+  - name: object_type
+    view_name: Object Type
+    type: string
+    required: true
+    length: 50
+    description: Target object type (e.g., intent_signal, contact, account)
+
+  - name: object_id
+    view_name: Object Id
+    type: string
+    required: true
+
+  - name: source
+    view_name: Source
+    type: picklist.excl
+    required: true
+    default: manual
+    values:
+      - manual
+      - system
+      - rule
+
+  - name: applied_by
+    view_name: Applied By
+    type: string
+    required: false
+    foreign_key:
+      table: user
+      column: id
+
+  - name: applied_at
+    view_name: Applied At
+    type: datetime
+    required: false
+
+  # System fields
+  - name: created_at
+    view_name: Created At
+    type: datetime
+    required: true
+    system_managed: true
+
+  - name: updated_at
+    view_name: Updated At
+    type: datetime
+    required: true
+    system_managed: true
+
+

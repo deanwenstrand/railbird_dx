@@ -1,0 +1,62 @@
+type: schema
+object: principal_permission
+view_name: Principal Permissions
+description: Individual user/agent permission overrides
+deletion_mode: hard
+
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+
+fields:
+- name: id
+  view_name: ID
+  type: string
+  required: true
+  primary_key: true
+  system_managed: true
+
+- name: principal_id
+  view_name: Principal ID
+  type: string
+  required: true
+
+- name: principal_kind
+  view_name: Principal Kind
+  type: picklist.excl
+  required: true
+  values:
+    - user
+    - agent
+
+- name: permission_id
+  view_name: Permission
+  type: string
+  required: true
+  foreign_key:
+    table: permission
+    column: id
+    kind: lookup
+    on_delete: cascade
+
+- name: expires_at
+  view_name: Expires At
+  type: datetime
+  required: false
+
+# System fields
+- name: created_at
+  view_name: Created At
+  type: datetime
+  required: true
+  system_managed: true
+
+- name: updated_at
+  view_name: Updated At
+  type: datetime
+  required: true
+  system_managed: true

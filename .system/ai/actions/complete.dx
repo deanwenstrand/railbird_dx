@@ -1,0 +1,50 @@
+type: action
+name: complete
+description: "Complete the current workflow and return final answer to user"
+implementation: system
+version: 1.0
+enabled: true
+
+ai:
+  effect: write
+  when_to_use: "When the task is fully accomplished and you have a complete answer for the user"
+  examples: ["Task completed successfully", "Found the information you requested", "All actions have been executed"]
+  tags: [control, system, workflow]
+  priority: high
+
+input_schema:
+  type: object
+  properties:
+    response:
+      type: string
+      description: "The final answer or result to return to the user"
+      minLength: 1
+      maxLength: 2000
+    summary:
+      type: string
+      description: "Brief summary of what was accomplished"
+      maxLength: 200
+  required: [response]
+
+output_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: "Whether the workflow completed successfully"
+    final_response:
+      type: object
+      properties:
+        summary:
+          type: string
+          description: "The final answer for the user"
+    workflow_complete:
+      type: boolean
+      description: "Indicates workflow should end"
+    steps_taken:
+      type: integer
+      description: "Number of steps taken to complete the task"
+  required: [success, final_response, workflow_complete]
+
+requires_approval: false
+permissions: []

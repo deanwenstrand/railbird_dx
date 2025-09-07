@@ -1,0 +1,117 @@
+type: schema
+object: web_session
+description: "Website visitor sessions with metrics and attribution"
+system_managed: true
+
+fields:
+  - name: id
+    type: string
+    primary_key: true
+    system_managed: true
+    description: "Session ID (dx_sid) from session cookie"
+
+  - name: visitor_id
+    type: string
+    required: true
+    foreign_key:
+      table: web_visitor
+      column: id
+      on_delete: cascade
+    description: "Reference to visitor (dx_vid)"
+
+  - name: site_key
+    type: string
+    required: true
+    description: "Site identifier for multi-tenant tracking"
+
+  - name: started_at
+    type: datetime
+    required: true
+    system_managed: true
+    description: "Session start timestamp"
+
+  - name: last_event_at
+    type: datetime
+    required: true
+    system_managed: true
+    description: "Most recent event in this session"
+
+  - name: landing_page_url
+    type: text
+    nullable: true
+    description: "First page visited in session"
+
+  - name: landing_referrer
+    type: text
+    nullable: true
+    description: "Referrer for the landing page"
+
+  - name: page_count
+    type: integer
+    default: 0
+    description: "Number of pages viewed in session"
+
+  - name: exit_page_url
+    type: text
+    nullable: true
+    description: "Last page visited in session"
+
+  - name: duration_ms
+    type: integer
+    default: 0
+    description: "Session duration in milliseconds"
+
+  - name: bounced
+    type: boolean
+    default: false
+    description: "True if only one page was viewed"
+
+  - name: device_kind
+    type: string
+    default: "unknown"
+    description: "Device type: desktop, mobile, tablet, unknown"
+
+  - name: is_mobile
+    type: boolean
+    default: false
+    description: "True if mobile device detected"
+
+  - name: page_seq
+    type: json
+    nullable: true
+    description: "Sequence of pages visited (capped at 10)"
+
+  - name: path_len
+    type: integer
+    default: 0
+    description: "Total path length in session"
+
+  - name: exit_intent
+    type: boolean
+    default: false
+    description: "True if exit intent was detected"
+
+  - name: exit_intent_at
+    type: datetime
+    nullable: true
+    description: "When exit intent was detected"
+
+  - name: exit_intent_page_url
+    type: text
+    nullable: true
+    description: "Page where exit intent was detected"
+
+  - name: created_at
+    type: datetime
+    required: true
+    system_managed: true
+
+  - name: updated_at
+    type: datetime
+    required: true
+    system_managed: true
+
+  - name: deleted_at
+    type: datetime
+    nullable: true
+    system_managed: true

@@ -1,0 +1,174 @@
+type: layout
+name: account
+add_to_global_nav: true
+weight: 200
+## theme removed (deprecated)
+description: the default account layout
+
+components:
+
+
+  - type: link
+    name: company_website
+    view_name: Visit Website
+    location: top_navigation
+    style_override:
+      font_size: 16
+      font_weight: bold
+      color: "#0070d2"
+      background_color: "#f0f8ff"
+      padding: "4px 8px"
+      border_radius: 4px
+    url: "{account.website}"
+
+  - type: action
+    name: send_account_update
+    view_name: Send Account Update
+    location: top_navigation
+    icon:
+      react: |
+        import { Envelope } from "phosphor-react"
+
+        <Envelope size={20} color="white" weight="bold" />
+    description: Send an account update email to the primary contact.
+    style_override:
+      font_size: 16
+      color: "#ffffff"
+      background_color: "#28a745"
+      padding: "6px 12px"
+      border_radius: 4px
+    action: account.send_email
+    params:
+      to: "{account.contact_email}"
+      template_id: "account_update_email"
+
+  - type: field_section
+    name: basic_info
+    view_name: Account Information
+    location: main
+    layout: two_column
+    fields:
+      - company_name
+      - account_type
+      - industry
+      - status
+
+  - type: field_section
+    name: contact_info
+    view_name: Contact Information
+    location: main
+    layout: two_column
+    fields:
+      - primary_contact
+      - contact_email
+      - contact_phone
+      - account_manager
+
+  - type: field_section
+    name: company_details
+    view_name: Company Details
+    location: main
+    layout: two_column
+    fields:
+      - employee_count
+      - annual_revenue
+      - monthly_value
+
+  - type: field_section
+    name: contract_info
+    view_name: Contract Information
+    location: main
+    layout: two_column
+    fields:
+      - contract_start_date
+      - contract_end_date
+
+  - type: react_component
+    name: revenue_chart
+    view_name: Revenue Trend
+    location: main
+    description: Shows a chart of monthly contract value trend
+    react: |
+      const chartData = [
+        { month: 'Jan', value: account.monthly_value * 0.8 },
+        { month: 'Feb', value: account.monthly_value * 0.9 },
+        { month: 'Mar', value: account.monthly_value * 1.0 },
+        { month: 'Apr', value: account.monthly_value * 1.1 },
+        { month: 'May', value: account.monthly_value * 1.0 },
+        { month: 'Jun', value: account.monthly_value },
+      ]
+
+      const maxValue = Math.max(...chartData.map(d => d.value))
+
+      return (
+        <div style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'end', height: '200px', gap: '10px' }}>
+            {chartData.map((data, index) => (
+              <div key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div 
+                  style={{ 
+                    width: '30px', 
+                    height: `${(data.value / maxValue) * 150}px`, 
+                    backgroundColor: '#0070d2',
+                    marginBottom: '5px'
+                  }}
+                />
+                <span style={{ fontSize: '12px' }}>{data.month}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+
+  - type: field_section
+    name: addresses
+    view_name: Addresses
+    location: main
+    layout: two_column
+    fields:
+      - billing_address
+      - shipping_address
+
+  - type: related_list
+    name: recent_activities
+    view_name: Recent Activities
+    location: main
+    data: account.activities
+    fields:
+      - type
+      - direction
+      - created_at
+      - status
+
+  - type: field_section
+    name: notes_section
+    view_name: Account Notes
+    location: main
+    layout: single_column
+    fields:
+      - notes
+
+  - type: related_list
+    name: opportunities
+    view_name: Opportunities
+    location: footer
+    data: account.opportunities
+    fields:
+      - name
+      - stage
+      - amount
+      - close_date
+      - probability
+  
+  - type: related_list
+    name: account_domains
+    view_name: Account Domains
+    location: main
+    data: account.account_domains
+    fields:
+      - full_domain
+      - registrable_domain
+      - subdomain
+      - scope
+      - role
+      - shared_domain

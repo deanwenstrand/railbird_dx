@@ -1,0 +1,588 @@
+type: action
+name: data_analytics
+description: "Answer analytical questions about your data with smart visualizations"
+version: 1.0
+completion_behavior: auto_final
+
+# LLM Integration - perfect for natural language analytics
+ai:
+  when_to_use: "When user asks analytical questions about data, counts, trends, breakdowns, or statistics"
+  examples:
+    - "how many contacts were created last month?"
+    - "show me opportunities by stage"
+    - "count accounts by industry" 
+    - "contacts from technology companies created this year"
+    - "breakdown of activities by type"
+    - "how many leads came in yesterday?"
+    - "opportunities over $10k in proposing stage"
+  effect: read
+  priority: high
+  tags: ["analytics", "data", "query", "visualization", "reporting"]
+
+# Multi-step DSL with inline AI prompts
+implementation:
+  type: dsl_logic
+  logic:
+    steps:
+      # Phase 0: Fast Path - Try simple pattern matching first
+      - action: python
+        code: |
+          from core.nlp.fast_patterns import FastQueryPattern
+          
+          fast_matcher = FastQueryPattern()
+          fast_spec = fast_matcher.try_fast_match(input.query)
+          
+          result = {
+              'spec': fast_spec,
+              'matched': fast_spec is not None,
+              'pattern_type': fast_spec.get('_llm_meta', {}).get('fast_path') if fast_spec else None
+          }
+          
+          # Log fast path matching with structured logging
+          from core.logging.setup import get_logger
+          logger = get_logger('ai.data_analytics')
+          logger.debug(f"Fast path matching for query: {input.query}", extra={
+              'step': 0, 'query': input.query, 'fast_spec': str(fast_spec), 
+              'matched': result['matched'], 'pattern_type': result.get('pattern_type')
+          })
+        store_as: fast_path_result
+      
+      # Phase 1: Schema Introspection - Get available objects from live DB (skip if fast path matched)
+      - action: python
+        condition: "not {fast_path_result.matched}"
+        code: |
+          from core.query_builder.introspection import get_available_schema_objects
+          result = get_available_schema_objects()
+          result['_metadata'] = {
+              'phase': 'schema_introspection', 
+              'generated_at': 'now'
+          }
+        store_as: available_objects
+
+      # Phase 2: Precompute Time Candidates (fast, deterministic) - always needed for validator
+      - action: python
+        code: |
+          from core.nlp.time_ranges import build_time_candidates
+          result = build_time_candidates(tz="America/Los_Angeles")
+        store_as: time_candidates
+
+      # Phase 3: Enhanced Intent Analysis & Schema Discovery (skip if fast path matched)
+      - action: ai_generate
+        condition: "not {fast_path_result.matched}"
+        context:
+          user_query: "{input.query}"
+          available_objects: "{available_objects}"
+          time_candidates: "{time_candidates.candidates}"
+        system_prompt: |
+          You are a CRM analytics intent analyzer. Parse user queries about sales, marketing, and customer data.
+
+          USER QUERY: {user_query}
+          AVAILABLE OBJECTS: {available_objects}
+
+          CRM OBJECT MAPPINGS (use these exact table names):
+          - "deals", "deal", "opportunities", "opportunity", "pipeline", "sales" → use "opportunity" 
+          - "contacts", "contact", "leads", "prospects" → use "contact"
+          - "accounts", "account", "companies", "clients", "customers" → use "account"
+          - "people", "users" → use "contact"
+
+          COMMON CRM TERMINOLOGY:
+          - "closed won" → filter: stage = "ClosedWon" (successful deals)
+          - "closed lost" → filter: stage = "ClosedLost" (lost deals)
+          - "status" → use "stage" field for opportunities
+          - "pipeline" = opportunities in progress  
+          - "leads" = potential contacts
+          - "prospects" = contacts being pursued
+          - "revenue", "amount", "value" = deal/opportunity amounts
+          - "stage" = opportunity stage (Qualifying, Engaging, Proposing, Negotiating, Committed, ClosedWon, ClosedLost)
+          - "source" = lead/opportunity source (use "lead_source" field)
+
+          QUERY PATTERN DETECTION RULES:
+          1. "by [field]" = GROUP BY field (breakdown query)
+             Examples: "contacts by status", "deals by stage", "accounts by industry"
+          
+          2. "where/with/at [condition]" = WHERE clause (filter query)  
+             Examples: "contacts where status=active", "deals with amount>1000", "accounts at tech companies"
+          
+          3. "per [time]" = GROUP BY time_period (time-series query)
+             Examples: "contacts per month", "revenue per quarter"
+          
+          4. "[metric] of [field]" = aggregate function
+             Examples: "sum of deal amounts", "average of contact scores"
+
+          5. Combination patterns:
+             "active contacts by status" = WHERE + GROUP BY
+             "deals over $10k by stage" = WHERE + GROUP BY
+
+          Return JSON with this enhanced structure:
+          {{
+            "relevant_objects": [
+              {{
+                "table_name": "exact_table_name",
+                "fields_needed": ["field1", "field2", "created_at"],
+                "why_needed": "Brief explanation"
+              }}
+            ],
+            "query_type": "count|sum|breakdown|filtered|time_series|percentage|complex",
+            "group_by_fields": ["field1", "field2"],
+            "filter_conditions": [
+              {{
+                "field": "status", 
+                "operator": "=|!=|>|<|>=|<=|like|ilike|in|between", 
+                "value": "filter_value",
+                "reasoning": "why this filter is needed"
+              }}
+            ],
+            "aggregate_function": "count|sum|avg|min|max",
+            "time_dimension": "hour|day|week|month|quarter|year",
+            "confidence": "high|medium|low",
+            "_llm_meta": {{
+              "chosen_timeframe": "key_from_time_candidates_or_none",
+              "timeframe_reason": "optional_explanation"
+            }}
+          }}
+
+          TIME RANGE SELECTION (if user didn't specify time):
+          AVAILABLE TIME CANDIDATES: {time_candidates}
+          
+          If user query lacks time specification, choose ONE appropriate timeframe key:
+          - Counts/activity queries → "last_30d" 
+          - Revenue/financial sums → "this_quarter" or "ytd"
+          - Breakdowns by category → "last_30d"
+          - Time-series/trend analysis → "last_12mo"
+          - Recent activity queries → "last_7d" or "this_month"
+          
+          If user already specified a time range, use "none" for chosen_timeframe.
+
+
+          Focus on precision - detect all GROUP BY needs and filter conditions.
+        store_as: schema_discovery
+
+      # Phase 3: Get targeted schema context for discovered objects (skip if fast path matched)  
+      - action: python
+        condition: "not {fast_path_result.matched}"
+        code: |
+          from core.query_builder.introspection import get_targeted_schema_context
+          relevant_objects = schema_discovery.get('relevant_objects', [])
+          targeted_schema_text = get_targeted_schema_context(relevant_objects)
+          result = {
+              'targeted_schema': targeted_schema_text,
+              'objects_processed': len(relevant_objects),
+              'object_names': [obj.get('table_name', '') for obj in relevant_objects],
+              '_metadata': {
+                  'phase': 'targeted_schema_context',
+                  'generated_at': 'now'
+              }
+          }
+        store_as: targeted_schema_response
+
+      # Phase 4a: Fast Path Query Spec (if pattern matched)
+      - action: python
+        condition: "{fast_path_result.matched}"
+        code: |
+          # Log fast path result details with structured logging
+          from core.logging.setup import get_logger
+          logger = get_logger('ai.data_analytics')
+          logger.debug(f"Using fast path result for step 4a", extra={
+              'step': '4a', 'matched': fast_path_result.get('matched'),
+              'spec_available': fast_path_result.get('spec') is not None,
+              'fast_path_result_keys': list(fast_path_result.keys()) if isinstance(fast_path_result, dict) else 'not_dict'
+          })
+          
+          # Use the fast path generated spec directly
+          if fast_path_result.get('spec') is None:
+            raise ValueError(f"Fast path spec is None! fast_path_result = {fast_path_result}")
+          result = fast_path_result['spec']
+        store_as: query_specification
+
+      # Phase 4b: Enhanced Query Specification with Intent Awareness (skip if fast path matched)
+      - action: ai_generate
+        condition: "not {fast_path_result.matched}"
+        context:
+          user_query: "{input.query}"
+          date_today: "{%python_expr%}from datetime import datetime; datetime.now().strftime('%Y-%m-%d'){%/python_expr%}"
+          targeted_schema: "{targeted_schema_response.targeted_schema}"
+          query_type: "{schema_discovery.query_type}"
+          group_by_fields: "{schema_discovery.group_by_fields}"
+          filter_conditions: "{schema_discovery.filter_conditions}"
+          aggregate_function: "{schema_discovery.aggregate_function}"
+          chart_type_hint: "{schema_discovery.chart_type_hint}"
+          chosen_timeframe: "{schema_discovery._llm_meta.chosen_timeframe}"
+          time_candidates: "{time_candidates.candidates}"
+        system_prompt: |
+          You are an advanced database query specification generator. Use the intent analysis results to generate precise query specifications.
+          
+          USER QUERY: {user_query}
+          QUERY TYPE: {query_type}
+          DETECTED GROUP BY: {group_by_fields}  
+          DETECTED FILTERS: {filter_conditions}
+          SUGGESTED AGGREGATE: {aggregate_function}
+          CHART TYPE HINT: {chart_type_hint}
+          
+          TARGETED SCHEMA CONTEXT:
+          {targeted_schema}
+          
+          TIME RANGE HANDLING:
+          CHOSEN TIMEFRAME: {chosen_timeframe}
+          TIME CANDIDATES: {time_candidates}
+          
+          If chosen_timeframe is not "none", include the selected timeframe metadata:
+          "_llm_meta": {{"chosen_timeframe": "{chosen_timeframe}"}}
+          
+          The validator will automatically apply the time range - do NOT add created_at filters yourself.
+          
+          INTENT-DRIVEN QUERY GENERATION:
+          
+          1. For BREAKDOWN queries (query_type="breakdown"):
+             - MUST include "group_by" with the detected fields: {group_by_fields}
+             - Use aggregate function "count" with field "*" unless other function specified
+             - Example: {"object": "contact", "group_by": ["status"], "aggregate": {"fn": "count", "field": "*"}}
+          
+          2. For FILTERED queries (query_type="filtered"): 
+             - MUST include "filters" array with conditions from: {filter_conditions}
+             - Convert detected conditions to proper filter format
+             - Example: {"object": "contact", "filters": [{"field": "status", "op": "=", "value": "active"}]}
+          
+          3. For TIME-SERIES queries (query_type="time_series"):
+             - Group by time dimension (day/week/month)  
+             - Add time-based filters for reasonable ranges
+             - Order by time field ascending
+          
+          4. For COMPLEX queries (multiple intents):
+             - Combine GROUP BY + WHERE clauses appropriately
+             - Example: "active contacts by status" = WHERE status + GROUP BY status
+          
+          SPECIFICATION FORMAT:
+          Generate ONLY a JSON object with this exact structure:
+          {
+            "object": "actual_table_name_from_schema",
+            "filters": [
+              {"field": "field_name", "op": "=|!=|>|<|>=|<=|like|ilike|in|between", "value": "filter_value"}
+            ],
+            "aggregate": {"fn": "count|sum|avg|min|max", "field": "field_name_or_*"},
+            "group_by": ["field_name1", "field_name2"],
+            "order_by": [{"field": "field_name", "direction": "asc|desc"}],
+            "limit": 50,
+            "timezone": "UTC",
+            "_llm_meta": {"chosen_timeframe": "timeframe_key_or_none"}
+          }
+          
+          CRITICAL REQUIREMENTS:
+          - If group_by_fields is not empty, YOU MUST include "group_by" in your output
+          - If filter_conditions is not empty, YOU MUST include "filters" in your output  
+          - Use the exact field names from the targeted schema
+          - For breakdown queries, default limit should be 50 (not 1000)
+          
+          OPERATORS: =, !=, in, between, >, >=, <, <=, like, ilike
+          
+          OBJECT RESOLUTION:
+          CRITICAL: Use the EXACT table names from the targeted_schema context provided below.
+          DO NOT use placeholder names like "table_name" - use the actual table names discovered in schema analysis.
+          Common mappings: "contacts"→contact, "accounts"→account, "opportunities"→opportunity
+          
+          SCHEMA CONTEXT: {targeted_schema}
+          
+          ====== DATE HANDLING - CRITICAL INSTRUCTIONS ======
+          TODAY IS {date_today} ({%python_expr%}from datetime import datetime; datetime.now().strftime('%B %d, %Y'){%/python_expr%}). You MUST calculate all dates relative to this date.
+          
+          CRITICAL DATE CONVERSIONS:
+          ⚠️  "last month" = FULL {%python_expr%}from datetime import datetime, timedelta; (datetime.now().replace(day=1) - timedelta(days=1)).strftime('%B').upper(){%/python_expr%} = {%python_expr%}from datetime import datetime, timedelta; prev_month = datetime.now().replace(day=1) - timedelta(days=1); prev_month.replace(day=1).strftime('%Y-%m-%d'){%/python_expr%}T00:00:00,{%python_expr%}from datetime import datetime, timedelta; prev_month = datetime.now().replace(day=1) - timedelta(days=1); prev_month.strftime('%Y-%m-%d'){%/python_expr%}T23:59:59
+          ⚠️  "last week" = 7 days ago = {%python_expr%}from datetime import datetime, timedelta; (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'){%/python_expr%}T00:00:00,{%python_expr%}from datetime import datetime, timedelta; (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d'){%/python_expr%}T23:59:59
+          ⚠️  "yesterday" = {%python_expr%}from datetime import datetime, timedelta; (datetime.now() - timedelta(days=1)).strftime('%B %d'){%/python_expr%} = {%python_expr%}from datetime import datetime, timedelta; (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d'){%/python_expr%}T00:00:00,{%python_expr%}from datetime import datetime, timedelta; (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d'){%/python_expr%}T23:59:59
+          
+          DO NOT CONFUSE:
+          - "last month" ≠ "last week" (August ≠ late August)
+          - "last month" = the previous calendar month (August)
+          - "last week" = the previous 7 days
+          
+          STEP BY STEP CALCULATIONS:
+          1. "yesterday" = 2025-09-01 (full day: 2025-09-01T00:00:00,2025-09-01T23:59:59)
+          2. "last week" = 7 days before today = 2025-08-26 to 2025-09-01 (2025-08-26T00:00:00,2025-09-01T23:59:59)
+          3. "this month" = start of September to today = 2025-09-01T00:00:00 to now
+          4. "last month" = FULL AUGUST MONTH = 2025-08-01T00:00:00,2025-08-31T23:59:59
+          5. "this year" = start of 2025 to today = 2025-01-01T00:00:00 to now
+          
+          MANDATORY: Use only 2025 dates. Never use 2023, 2024, or any other year.
+          
+          CRITICAL: For "between" operator, value MUST be a comma-separated string with exactly 2 values: "start_date,end_date"
+          NEVER use arrays, single values, or empty strings with "between" operator.
+          ALWAYS use comma-separated strings like "2025-08-01T00:00:00,2025-08-31T23:59:59" for between operations.
+          
+          EXAMPLES WITH CORRECT DATE CALCULATIONS:
+          User: "how many contacts yesterday?"
+          Output: {"object": "contact", "filters": [{"field": "created_at", "op": "between", "value": "2025-09-01T00:00:00,2025-09-01T23:59:59"}], "aggregate": {"fn": "count", "field": "*"}}
+          
+          User: "contacts created last week?"
+          Output: {"object": "contact", "filters": [{"field": "created_at", "op": "between", "value": "2025-08-26T00:00:00,2025-09-01T23:59:59"}], "aggregate": {"fn": "count", "field": "*"}}
+          
+          User: "how many contacts created last month?"
+          Output: {"object": "contact", "filters": [{"field": "created_at", "op": "between", "value": "2025-08-01T00:00:00,2025-08-31T23:59:59"}], "aggregate": {"fn": "count", "field": "*"}}
+          
+          User: "opportunities this month"
+          Output: {"object": "opportunity", "filters": [{"field": "created_at", "op": ">=", "value": "2025-09-01T00:00:00"}], "aggregate": {"fn": "count", "field": "*"}}
+          
+          User: "active opportunities over $10k"  
+          Output: {"object": "opportunity", "filters": [{"field": "status", "op": "=", "value": "active"}, {"field": "amount", "op": ">", "value": 10000}], "aggregate": {"fn": "count", "field": "*"}}
+          
+          CRITICAL: Output ONLY valid JSON. No code, no explanations, just the JSON specification.
+        context:
+          user_query: "{input.query}"
+          date_today: "{%python_expr%}from datetime import datetime; datetime.now().strftime('%Y-%m-%d'){%/python_expr%}"
+          targeted_schema: "{targeted_schema_response.targeted_schema}"
+        store_as: query_specification
+        
+      # Phase 4.5: Query Validator & Auto-Repair
+      - action: python
+        code: |
+          from core.query_builder.validator import validate_query_spec
+          
+          # Get the AI-generated spec and context for validation
+          raw_spec = query_specification
+          
+          # Handle both fast path and regular AI pipeline cases
+          if fast_path_result.get('matched', False):
+              # Fast path case - extract context from fast path metadata
+              fast_meta = fast_path_result.get('spec', {}).get('_llm_meta', {})
+              validation_context = {
+                  'query_type': 'count',  # Fast path is always count-based
+                  'group_by_fields': [],
+                  'filter_conditions': [],
+                  'chart_type_hint': 'metric',  # Fast path results are always metrics
+                  'original_query': input.query,
+                  'confidence': 'high',  # Fast path has high confidence
+                  'fast_path': True,
+                  'pattern_type': fast_path_result.get('pattern_type', 'unknown'),
+                  'time_candidates': time_candidates  # Include time candidates for validation
+              }
+          else:
+              # Regular AI pipeline case - use schema_discovery
+              validation_context = {
+                  'query_type': schema_discovery.get('query_type', ''),
+                  'group_by_fields': schema_discovery.get('group_by_fields', []),
+                  'filter_conditions': schema_discovery.get('filter_conditions', []),
+                  'chart_type_hint': schema_discovery.get('chart_type_hint', 'metric'),
+                  'original_query': input.query,
+                  'confidence': schema_discovery.get('confidence', 'medium'),
+                  'fast_path': False,
+                  'time_candidates': time_candidates  # Include time candidates for validation
+              }
+          
+          # Validate and normalize the query specification
+          validation_result = validate_query_spec(raw_spec, validation_context)
+          
+          if validation_result.get('validation_success', False):
+              # Use the validated spec
+              result = validation_result['validated_spec']
+              result['_validation_meta'] = {
+                  'applied_fixes': validation_result.get('applied_fixes', []),
+                  'warnings': validation_result.get('warnings', []),
+                  'validator_version': 'v1.0'
+              }
+          else:
+              # Validation failed, use original spec but log errors
+              result = raw_spec
+              result['_validation_meta'] = {
+                  'validation_failed': True,
+                  'errors': validation_result.get('errors', []),
+                  'needs_llm_repair': validation_result.get('needs_repair', False)
+              }
+        store_as: validated_query_spec
+      
+      # Phase 4.5b: LLM Repair (DISABLED - validation working correctly)
+      # - action: ai_generate
+      #   condition: "{validated_query_spec._validation_meta.needs_llm_repair}"
+        context:
+          original_spec: "{query_specification}"
+          validation_errors: "{validated_query_spec._validation_meta.errors}"
+          user_query: "{input.query}"
+          schema_context: "{targeted_schema_response.targeted_schema}"
+        system_prompt: |
+          QUERY SPECIFICATION REPAIR REQUIRED
+          
+          The original query specification failed validation with these errors:
+          {validation_errors}
+          
+          ORIGINAL SPEC: {original_spec}
+          USER QUERY: {user_query}
+          SCHEMA CONTEXT: {schema_context}
+          
+          Please generate a corrected query specification that fixes these validation errors.
+          Follow the same JSON format as the original spec but address each validation error.
+          
+          Common fixes needed:
+          - Add missing "group_by" fields for breakdown queries
+          - Normalize object names (contacts → contact)
+          - Fix invalid operators or field names
+          - Add proper date range formats for time filters
+          
+          Return only the corrected JSON specification.
+        store_as: repaired_query_spec
+        
+      # Use repaired spec if available, otherwise use validated spec
+      - action: python
+        code: |
+          import json
+          
+          # Choose the best available query specification from previous steps
+          repaired_spec = context.get_step_result('repaired_query_spec')
+          validated_spec = context.get_step_result('validated_query_spec')
+          
+          if repaired_spec:
+              # Extract the actual query spec from AI response (may be wrapped in 'result' field)
+              if isinstance(repaired_spec, dict) and 'result' in repaired_spec:
+                  # AI wrapped the spec in a result field, extract it
+                  result_content = repaired_spec['result']
+                  if isinstance(result_content, str):
+                      # Parse JSON string
+                      final_spec = json.loads(result_content)
+                  else:
+                      final_spec = result_content
+              else:
+                  final_spec = repaired_spec.copy() if isinstance(repaired_spec, dict) else repaired_spec
+              
+              if isinstance(final_spec, dict):
+                  final_spec['_repair_applied'] = True
+          elif validated_spec:
+              final_spec = validated_spec
+          else:
+              raise ValueError("No query specification available - both validation and repair failed")
+              
+          result = final_spec
+        store_as: final_query_spec
+        
+      # Phase 5: Execute the safe database query
+      - action: safe_database_query
+        query_spec: "{final_query_spec}"
+        store_as: raw_data
+        
+      # Phase 6: Complete LLM Formatter - Full data, complete response
+      - action: ai_generate
+        context:
+          original_query: "{input.query}"
+          raw_data: "{raw_data}"
+          query_spec: "{final_query_spec}"
+          conversation_history: "[]"
+        system_prompt: |
+          You are a data analytics formatter. Build the complete response for the DataAnalytics.tsx frontend component.
+
+          USER QUERY: {original_query}
+          RAW DATABASE RESULTS: {raw_data}
+          QUERY SPECIFICATION: {query_spec}
+          CONVERSATION HISTORY: {conversation_history}
+
+          CRITICAL RULES:
+          1. Use ONLY the numbers from RAW DATABASE RESULTS above
+          2. Do NOT make up any numbers or use examples
+          3. Build chart_data from the actual database records
+          4. Choose chart_type based on the actual data structure
+
+          CHART TYPE SELECTION:
+          - Single number → "metric"
+          - 2-8 categories → "bar_chart"
+          - 8+ categories → "table"  
+          - Time series (dates) → "line_chart"
+          - Part-of-whole analysis → "pie_chart"
+
+          DATA TRANSFORMATION EXAMPLES:
+          If raw_data is: [{"created_at_date": "2025-08-01", "count": 3}, {"created_at_date": "2025-08-02", "count": 7}]
+          Then chart_data should be: [{"label": "2025-08-01", "value": 3, "percentage": 30.0}, {"label": "2025-08-02", "value": 7, "percentage": 70.0}]
+
+          If raw_data is: 42 (single number)
+          Then chart_data should be: [{"label": "Total", "value": 42, "percentage": 100.0}]
+
+          Return complete response ready for frontend:
+          {{
+            "chart_type": "metric|bar_chart|pie_chart|line_chart|table",
+            "value": actual_primary_value,
+            "label": "descriptive_label",
+            "summary": "Natural language summary using actual numbers",
+            "chart_data": [
+              {{"label": "category_name", "value": actual_value, "percentage": calculated_percentage}}
+            ],
+            "total_count": sum_of_all_values
+          }}
+
+          FORBIDDEN: Do not use placeholder numbers. Only use actual values from raw_data.
+        store_as: formatted_result
+        
+      # Phase 7: Return final answer with rich analytics response
+      - action: return_final_answer
+        answer: "{formatted_result.summary}"
+        response_type: "analytics"
+        layout_hint: "{formatted_result.chart_type}"
+        response_data: "{formatted_result}"
+
+# Simple input schema
+input_schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: "Natural language analytics question"
+      examples: 
+        - "how many contacts created last month?"
+        - "opportunities by stage"
+        - "count active accounts"
+      minLength: 3
+  required: ["query"]
+
+# Rich output schema with visualization info
+output_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: "Whether the query executed successfully"
+    summary:
+      type: string
+      description: "Human-readable summary of results"
+    chart_type:
+      type: string
+      description: "Recommended visualization type"
+      enum: ["metric", "bar_chart", "pie_chart", "line_chart", "table"]
+    value:
+      type: number
+      description: "Primary numeric result (for metrics)"
+    label:
+      type: string
+      description: "Label for the primary result"
+    chart_data:
+      type: array
+      description: "Data points for visualization"
+      items:
+        type: object
+        properties:
+          label:
+            type: string
+          value:
+            type: number
+          percentage:
+            type: number
+    columns:
+      type: array
+      description: "Column definitions for table view"
+      items:
+        type: object
+    raw_count:
+      type: number
+      description: "Total number of records found"
+    query_info:
+      type: object
+      description: "Debug info about the executed query"
+      properties:
+        endpoint:
+          type: string
+        filters_applied:
+          type: array
+        object_type:
+          type: string
+    insights:
+      type: string
+      description: "Key insights or patterns observed in the data"
+    llm_feedback:
+      type: string
+      description: "Explanation for the LLM about the results"
+  required: ["success", "summary", "chart_type"]
+
+# No approval needed - read-only analytics
+requires_approval: false
+permissions: ["objects:read", "reports:execute"]

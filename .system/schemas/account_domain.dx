@@ -1,0 +1,100 @@
+type: schema
+object: account_domain
+view_name: Account Domains
+description: Links domains to Accounts.
+
+fields:
+  - name: id
+    view_name: Id
+    type: string
+    required: true
+    primary_key: true
+    system_managed: true
+
+  - name: account_id
+    view_name: Account
+    type: string
+    required: true
+    foreign_key:
+      table: account
+      column: id
+    description: References the owning account
+
+  - name: full_domain
+    view_name: Full Domain
+    type: string
+    required: true
+    unique: true
+    description: Normalized full domain (e.g., sub.example.co.uk)
+
+  - name: registrable_domain
+    view_name: Registrable Domain
+    type: string
+    required: true
+    description: Public‑suffix derived registrable domain (e.g., example.co.uk)
+
+  - name: subdomain
+    view_name: Subdomain
+    type: string
+    required: false
+    description: Optional subdomain component only (e.g., app)
+
+  - name: scope
+    view_name: Scope
+    type: picklist.excl
+    required: true
+    values:
+      - email
+      - web
+      - both
+    default: both
+    description: Whether the domain applies to email, web, or both
+
+  - name: role
+    view_name: Role
+    type: picklist.excl
+    required: true
+    values:
+      - primary
+      - alias
+      - subsidiary
+      - other
+    description: |
+      Primary – main domain for the account; used for routing and matching.
+      Alias – alternate domain that points to the same account.
+      Subsidiary – related brand/division domain tied to this account.
+      Other – parked, redirects, or anything else not used for matching.
+
+  - name: verified_by
+    view_name: Verified By
+    type: string
+    required: false
+    description: User ID of the verifier (null if unverified)
+
+  - name: verified_at
+    view_name: Verified At
+    type: datetime
+    required: false
+    description: Timestamp when the domain was verified (null if unverified)
+
+  - name: shared_domain
+    view_name: Shared Domain
+    type: boolean
+    required: true
+    default: false
+    description: True if this is a shared/free domain (e.g., gmail.com)
+
+  # System fields
+  - name: created_at
+    view_name: Created At
+    type: datetime
+    required: true
+    system_managed: true
+
+  - name: updated_at
+    view_name: Updated At
+    type: datetime
+    required: true
+    system_managed: true
+
+

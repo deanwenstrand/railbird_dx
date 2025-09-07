@@ -1,0 +1,88 @@
+type: website_tracking
+name: main_site_tracking
+description: "Website visitor tracking configuration for Dilex platform"
+
+site_keys:
+  - id: "dlx_main"
+    label: "Main Website"
+    allowed_origins: 
+      - "https://dilex.ai"
+      - "https://www.dilex.ai"
+    status: "active"
+
+# Event configuration
+events:
+  page_view:
+    enabled: true
+    capture_referrer: true
+    capture_title: true
+    capture_scroll: false
+    
+  exit_intent:
+    enabled: true
+    desktop_only: true
+    debounce_ms: 1000
+    
+  form_submit:
+    enabled: true
+    capture_fields: true
+    auto_detect: true
+    
+  click_tracking:
+    enabled: true
+    selectors: 
+      - "button[data-track]"
+      - "a[data-track]"
+      - ".cta-button"
+      
+  scroll_tracking:
+    enabled: true
+    thresholds: [25, 50, 75, 90]
+    
+  video_tracking:
+    enabled: false
+    events: ["play", "pause", "complete"]
+    
+  download_tracking:
+    enabled: false
+    file_types: [".pdf", ".doc", ".xls"]
+
+# Data collection settings
+data_collection:
+  capture_utm: true
+  capture_device_info: true
+  capture_geolocation: false
+  session_timeout_minutes: 30
+  max_events_per_session: 1000
+
+# Referral filtering settings
+referral_filtering:
+  excluded_referral_domains:
+    - "dilex.ai"
+    - "www.dilex.ai"
+    - "localhost"
+    - "127.0.0.1"
+
+# Cookie and consent settings
+consent_mode: "none"
+cookies:
+  domain: ".dilex.ai"
+
+# Form tracking defaults
+forms:
+  allowed_fields: 
+    - "email"
+    - "first_name" 
+    - "last_name"
+    - "company"
+    - "phone"
+  selector: "[data-pb-form]"
+
+# URL parameter tracking
+url_parameters:
+  tracked_params:
+    - name: "campaign_id"
+      expiration_days: 30
+
+  cookie_prefix: "pb_"
+  auto_inject: false

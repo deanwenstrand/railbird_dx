@@ -1,0 +1,30 @@
+type: integration
+name: gmail_notifications
+service: email
+description: "Send email notifications via Gmail SMTP"
+
+connection:
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+  use_tls: true
+
+auth:
+  type: basic_auth
+  username_env: "GMAIL_USERNAME"
+  password_env: "GMAIL_APP_PASSWORD"
+
+request_mapping:
+  to: "{{recipient_email}}"
+  subject: "{{subject}}"
+  body: "{{message}}"
+  from_name: "Playbook CRM"
+  from_email: "{{env.GMAIL_USERNAME}}"
+  content_type: "text/plain"
+
+response_mapping:
+  success_condition: "status_code == 200"
+
+error_handling:
+  on_failure: "log_error"
+  retry_attempts: 3
+

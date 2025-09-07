@@ -1,0 +1,53 @@
+type: action
+name: create_opportunity_from_contact
+view_name: Create Opportunity from Contact
+description: Opens the opportunity creation form pre-populated with the current contact's account ID and sets the contact as the primary contact
+implementation: python
+effect: read
+requires_approval: false
+timeout_ms: 5000
+
+defaults:
+  code: |
+    # This action will be handled by the frontend to open the opportunity form
+    # with pre-populated data from the current contact context
+    result = {
+        "action": "navigate_to_opportunity_form",
+        "pre_populate": {
+            "primary_contact_id": "{{contact.id}}",
+            "account_id": "{{contact.account_id}}"
+        },
+        "message": "Opening opportunity form with pre-populated contact data"
+    }
+
+tags:
+  - opportunity
+  - contact
+  - sales
+  - form
+
+when_to_use: "Use this action when you want to quickly create a new opportunity for a contact, automatically linking it to their account and setting them as the primary contact."
+
+input_schema:
+  type: object
+  properties:
+    contact_id:
+      type: string
+      description: "The ID of the contact to create the opportunity for"
+    account_id:
+      type: string
+      description: "The account ID associated with the contact"
+  required: ["contact_id"]
+
+output_schema:
+  type: object
+  properties:
+    action:
+      type: string
+      description: "The action to perform (navigate_to_opportunity_form)"
+    pre_populate:
+      type: object
+      description: "Data to pre-populate in the form"
+    message:
+      type: string
+      description: "Status message"

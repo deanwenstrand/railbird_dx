@@ -1,0 +1,101 @@
+type: schema
+object: touch
+view_name: Touches
+singular_name: Touch
+description: "Campaign touches and interactions with contacts and accounts for tracking engagement"
+deletion_mode: soft
+
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+
+add_to_top_nav: true          # Show Touches in the main navigation
+search:
+  enabled: true
+  label: "Touches"
+
+default_list_view:
+  fields:
+    - id  
+    - campaign_id
+    - contact_id
+    - account_id
+    - event_id
+    - created_at
+  sort_by: created_at
+  sort_order: desc
+  page_size: 25
+
+fields:
+  - name: id
+    view_name: Id
+    type: string
+    required: true
+    primary_key: true
+    system_managed: true
+
+  - name: campaign_id
+    view_name: Campaign
+    type: string
+    required: true
+    foreign_key:
+      table: campaign
+      column: id
+      kind: lookup
+      on_delete: block
+
+  - name: contact_id
+    view_name: Contact
+    type: string
+    required: false
+    foreign_key:
+      table: contact
+      column: id
+      kind: lookup
+      on_delete: nullify
+
+  - name: account_id
+    view_name: Account
+    type: string
+    required: false
+    foreign_key:
+      table: account
+      column: id
+      kind: lookup
+      on_delete: nullify
+
+  - name: event_id
+    view_name: Event ID
+    type: string
+    required: false
+    description: "Reference to related event for traceability (web_event, import, API call, etc.)"
+
+  # System-managed audit fields
+  - name: created_at
+    view_name: Created At
+    type: datetime
+    required: false
+    system_managed: true
+
+  - name: updated_at
+    view_name: Updated At
+    type: datetime
+    required: false
+    system_managed: true
+
+  - name: deleted_at
+    view_name: Deleted At
+    type: datetime
+    required: false
+    system_managed: true
+
+# Define indexes for efficient queries
+indexes:
+  - fields: [campaign_id, created_at]
+  - fields: [contact_id, campaign_id]
+  - fields: [account_id, campaign_id]
+  - fields: [event_id]

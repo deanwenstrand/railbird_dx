@@ -1,0 +1,124 @@
+type: schema
+object: form_submission
+view_name: Form Submissions
+description: "Form submission tracking and processing results"
+deletion_mode: soft
+system_managed: true
+
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+
+fields:
+- name: id
+  view_name: ID
+  type: string
+  required: true
+  primary_key: true
+  system_managed: true
+
+- name: form_name
+  view_name: Form Name
+  type: string
+  required: false
+
+- name: form_data
+  view_name: Form Data
+  type: string
+  required: false
+
+- name: relation_name
+  view_name: Relation Name
+  type: string
+  required: false
+
+- name: relation_id
+  view_name: Relation ID
+  type: string
+  required: false
+
+- name: linking_action
+  view_name: Linking Action
+  type: string
+  required: false
+
+- name: match_attempts
+  view_name: Match Attempts
+  type: string
+  required: false
+
+- name: error_details
+  view_name: Error Details
+  type: string
+  required: false
+
+# Website tracking fields (NEW)
+- name: visitor_id
+  view_name: Visitor ID
+  type: string
+  required: false
+  foreign_key:
+    table: web_visitor
+    column: id
+    on_delete: nullify
+
+- name: session_id
+  view_name: Session ID
+  type: string
+  required: false
+  foreign_key:
+    table: web_session
+    column: id
+    on_delete: nullify
+
+- name: site_key
+  view_name: Site Key
+  type: string
+  required: false
+
+- name: event_id
+  view_name: Event ID
+  type: string
+  required: false
+  foreign_key:
+    table: web_event
+    column: id
+    on_delete: nullify
+
+# Existing tracking fields
+- name: referrer_url
+  view_name: Referrer URL
+  type: string
+  required: false
+
+- name: ip_address
+  view_name: IP Address
+  type: string
+  required: false
+
+- name: user_agent
+  view_name: User Agent
+  type: string
+  required: false
+
+- name: created_at
+  view_name: Created At
+  type: datetime
+  required: true
+  system_managed: true
+
+- name: updated_at
+  view_name: Updated At
+  type: datetime
+  required: true
+  system_managed: true
+
+- name: deleted_at
+  view_name: Deleted At
+  type: datetime
+  required: false
+  system_managed: true

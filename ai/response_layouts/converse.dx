@@ -1,0 +1,40 @@
+type: ai_layout
+name: Converse
+description: "Interactive UI component for AI-to-human conversation and question asking"
+
+# UI component that presents questions and options from the AI to the user
+components:
+  - name: "PlainTextConversation"
+    type: "text"
+    props:
+      message: "{response_data.message}"
+      options: "{response_data.options}"
+      context: "{response_data.context}"
+      communication_type: "{response_data.communication_type}"
+    styling:
+      # Minimal plain text styling - no background, no borders
+      text_color: "gray-800"
+      text_size: "sm"
+      line_height: "relaxed"
+
+# React component implementation - plain text, no background
+react_component: |
+  import React from 'react';
+  import { ResponseLayoutProps } from './types';
+
+  export function Converse(props: ResponseLayoutProps) {
+    // Get the conversational message from various possible sources
+    const message = props.message || 
+      props.responseData?.message || 
+      props.result?.message || 
+      props.result?.answer ||
+      props.summary ||
+      'AI is ready to help!';
+
+    // Simple plain text display - no background, no borders, no chrome
+    return (
+      <div className="text-gray-800 text-sm leading-relaxed select-text">
+        {message}
+      </div>
+    );
+  }

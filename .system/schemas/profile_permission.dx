@@ -1,0 +1,53 @@
+type: schema
+object: profile_permission
+view_name: Profile Permissions
+description: Links profiles to permissions
+deletion_mode: hard
+
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+
+fields:
+- name: id
+  view_name: ID
+  type: string
+  required: true
+  primary_key: true
+  system_managed: true
+
+- name: profile_id
+  view_name: Profile
+  type: string
+  required: true
+  foreign_key:
+    table: profile
+    column: id
+    kind: lookup
+    on_delete: cascade
+
+- name: permission_id
+  view_name: Permission
+  type: string
+  required: true
+  foreign_key:
+    table: permission
+    column: id
+    kind: lookup
+    on_delete: cascade
+
+- name: created_at
+  view_name: Created At
+  type: datetime
+  required: true
+  system_managed: true
+
+- name: updated_at
+  view_name: Updated At
+  type: datetime
+  required: true
+  system_managed: true

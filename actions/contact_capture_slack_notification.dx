@@ -1,0 +1,29 @@
+type: action
+name: contact_capture_slack_notification
+description: "Send Slack notification when a new contact is captured via website form"
+implementation: integration_call
+enabled: true
+tags: [notification, slack, contact]
+effect: external
+selection_method: semantic
+when_to_use: "When a new contact submits the website contact form and needs to notify the team"
+
+input_schema:
+  contact_name: {}
+  contact_email: {}
+  contact_phone: {}
+  contact_notes: {}
+  form_name: {}
+  crm_link: {}
+
+output_schema:
+  success: {}
+  slack_message_id: {}
+
+defaults:
+  integration: slack_notifications
+  message: "New contact from website!"
+  title: "Website Contact Form Submission"
+  color: "good"
+  details: "{{new_contact.first_name}} {{new_contact.last_name}} ({{new_contact.email}}) submitted the contact form"
+

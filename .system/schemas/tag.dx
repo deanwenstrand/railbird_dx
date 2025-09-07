@@ -1,0 +1,96 @@
+type: schema
+object: tag
+view_name: Tags
+description: Reusable tags for labeling business objects
+
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+
+fields:
+  - name: id
+    view_name: Id
+    type: string
+    required: true
+    primary_key: true
+    system_managed: true
+
+  - name: name
+    view_name: Name
+    type: string
+    required: true
+    length: 100
+
+  - name: slug
+    view_name: Slug
+    type: string
+    required: true
+    length: 100
+    unique: true
+
+  - name: color
+    view_name: Color
+    type: string
+    required: false
+    length: 20
+
+  - name: visibility
+    view_name: Visibility
+    type: picklist.excl
+    required: true
+    default: global
+    values:
+      - global
+      - private
+
+  - name: is_system
+    view_name: System Tag
+    type: boolean
+    required: true
+    default: false
+
+  - name: owner_user_id
+    view_name: Owner User
+    type: string
+    required: false
+    foreign_key:
+      table: user
+      column: id
+
+  - name: applies_to
+    view_name: Applies To
+    type: string
+    required: false
+    length: 200
+    description: Comma-separated object types where this tag is applicable (e.g., intent_signal,contact)
+
+  - name: description
+    view_name: Description
+    type: textarea
+    required: false
+
+  - name: created_at
+    view_name: Created At
+    type: datetime
+    required: false
+    system_managed: true
+
+  - name: created_by
+    view_name: Created By
+    type: string
+    required: false
+    foreign_key:
+      table: user
+      column: id
+
+  - name: updated_at
+    view_name: Updated At
+    type: datetime
+    required: false
+    system_managed: true
+
+

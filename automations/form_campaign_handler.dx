@@ -1,0 +1,85 @@
+type: automation
+name: form_campaign_handler
+description: "Unified form submission campaign handling with conditional touch creation"
+
+trigger:
+  type: database_event
+  on: record_created
+  tables: [form_submission]
+  filters:
+    form_name: "website_contact_us"
+
+conditions: []
+
+actions:
+  # Log the form submission processing
+  - type: log
+    config:
+      message: "[CAMPAIGN-HANDLER] Processing form submission: form={{new_values.form_name}} visitor={{new_values.visitor_id}} referrer={{new_values.referrer_url}}"
+      level: info
+
+  # Campaign attribution with conditional logic
+  - type: conditional
+    conditions:
+      # If campaign_id exists in form_data, use it directly
+      - if:
+          field: "{{new_values.form_data}}"
+          operator: contains
+          value: "campaign_id"
+        then:
+          - type: create_record
+            table: "touch"
+            data:
+              campaign_id: "{{new_values.form_data.campaign_id}}"
+              contact_id: "{{new_values.relation_id if new_values.relation_name == 'contact' else null}}"
+              event_id: "{{new_values.event_id}}"
+          - type: log
+            config:
+              message: "[CAMPAIGN-HANDLER] Touch created with existing campaign_id: {{new_values.form_data.campaign_id}}"
+              level: info
+
+      # Elif referrer contains google, use organic search campaign
+      - elif:
+          field: "{{new_values.referrer_url}}"
+          operator: contains
+          value: "google."
+        then:
+          - type: create_record
+            table: "touch"
+            data:
+              campaign_id: "000shvfsk0mhgrt8fbr8epqxmt"
+              contact_id: "{{new_values.relation_id if new_values.relation_name == 'contact' else null}}"
+              event_id: "{{new_values.event_id}}"
+          - type: log
+            config:
+              message: "[CAMPAIGN-HANDLER] Touch created for organic search: campaign=000shvfsk0mhgrt8fbr8epqxmt referrer={{new_values.referrer_url}}"
+              level: info
+
+      # Elif has referrer (but not google), use referral traffic campaign
+      - elif:
+          field: "{{new_values.referrer_url}}"
+          operator: is_not_null
+        then:
+          - type: create_record
+            table: "touch"
+            data:
+              campaign_id: "000shvfsk0rmtad2gf0aee154p"
+              contact_id: "{{new_values.relation_id if new_values.relation_name == 'contact' else null}}"
+              event_id: "{{new_values.event_id}}"
+          - type: log
+            config:
+              message: "[CAMPAIGN-HANDLER] Touch created for referral traffic: campaign=000shvfsk0rmtad2gf0aee154p referrer={{new_values.referrer_url}}"
+              level: info
+
+      # Else (no referrer), use direct traffic campaign
+      - else:
+          - type: create_record
+            table: "touch"
+            data:
+              campaign_id: "000shvfsk0v7bc16nx3cdhsfsu"
+              contact_id: "{{new_values.relation_id if new_values.relation_name == 'contact' else null}}"
+              event_id: "{{new_values.event_id}}"
+          - type: log
+            config:
+              message: "[CAMPAIGN-HANDLER] Touch created for direct traffic: campaign=000shvfsk0v7bc16nx3cdhsfsu"
+              level: info

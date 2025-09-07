@@ -1,0 +1,20 @@
+type: validation
+target: contact
+description: "Fun contact validation rules - test these in the frontend!"
+
+rules:
+  - name: email_required
+    python: |
+      email = data.get('email', '')
+      # Return True if validation FAILS (email is missing or empty)
+      return not email or email.strip() == ''
+    error_message: "Email address is required for all leads"
+    field: "email"
+    
+  - name: no_boring_emails
+    python: |
+      email = data.get('email', '').lower()
+      boring_domains = ['test.com', 'example.com', 'demo.com', 'temp.com']
+      return any(domain in email for domain in boring_domains)
+    error_message: "Please use a real email address (no test domains allowed!)"
+    

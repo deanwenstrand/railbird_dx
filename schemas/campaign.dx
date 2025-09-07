@@ -1,0 +1,208 @@
+type: schema
+object: campaign
+view_name: Campaigns
+description: "Marketing campaigns with tracking and budget management"
+deletion_mode: soft
+
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+
+add_to_top_nav: true          # Show Campaigns in the main navigation
+search:
+  enabled: true
+  label: "Campaigns"
+
+default_list_view:
+  fields:
+    - id  
+    - name
+    - channel
+    - source
+    - medium
+    - status
+    - budget
+    - cost
+    - start_date
+    - end_date
+    - created_at
+  sort_by: created_at
+  sort_order: desc
+  page_size: 25
+
+fields:
+  - name: id
+    view_name: Id
+    type: string
+    required: true
+    primary_key: true
+    system_managed: true
+
+  - name: name
+    view_name: Campaign Name
+    type: string
+    required: true
+    unique: true
+    length: 200
+    code: |
+      # Generate human-readable campaign name from attributes
+      parts = []
+      if channel:
+          parts.append(channel.title())
+      if source:
+          parts.append(source.title())
+      if medium:
+          parts.append(medium.upper())
+      if content:
+          parts.append(content.title())
+      if start_date:
+          parts.append(start_date.strftime("%b%Y"))
+      
+      return "_".join(parts) if parts else "Untitled_Campaign"
+
+  - name: campaign_id
+    view_name: Campaign ID
+    type: string
+    required: true
+    unique: true
+    description: "Auto-generated campaign identifier derived from campaign attributes"
+    length: 20
+    code: |
+      import hashlib
+      import base64
+      
+      # Create deterministic hash from campaign attributes
+      attrs = [
+          channel or '',
+          source or '',
+          medium or '',
+          content or '',
+          start_date.isoformat() if start_date else ''
+      ]
+      
+      # Create hash input string
+      hash_input = '|'.join(attrs).lower()
+      
+      # Generate short hash (bitly-style)
+      hash_bytes = hashlib.sha256(hash_input.encode()).digest()
+      # Use base62 for URL-safe short codes (like bitly)
+      import string
+      alphabet = string.ascii_letters + string.digits  # a-zA-Z0-9
+      
+      # Convert to base62
+      num = int.from_bytes(hash_bytes[:4], 'big')  # Use first 4 bytes
+      result = ''
+      while num > 0:
+          result = alphabet[num % 62] + result
+          num //= 62
+      
+      # Ensure consistent length (pad or truncate to ~8 chars)
+      return result[:8].ljust(8, 'a')
+
+  - name: channel
+    view_name: Channel
+    type: picklist.excl
+    required: false
+    description: "The broad marketing bucket for high-level rollups"
+    values:
+      - paid
+      - organic
+      - referral
+      - email
+      - social
+      - event
+
+  - name: source
+    view_name: Source
+    type: picklist.excl
+    required: false
+    description: "Where the traffic originated - the brand, platform, or site that drove the visit"
+    values:
+      - google
+      - linkedin
+      - facebook
+      - other
+
+  - name: medium
+    view_name: Medium
+    type: picklist.excl
+    required: false
+    description: "How the visitor got there - the mechanism within the source"
+    values:
+      - cpc
+      - display
+      - email
+      - organic
+      - referral
+
+  - name: content
+    view_name: Content/Variant
+    type: string
+    required: false
+    length: 100
+    description: "The creative, test cell, or split variant within the campaign"
+
+  - name: budget
+    view_name: Budget
+    type: integer
+    required: false
+    description: "Campaign budget in cents"
+
+  - name: cost
+    view_name: Actual Cost
+    type: integer
+    required: false
+    description: "Actual cost in cents"
+
+  - name: start_date
+    view_name: Start Date
+    type: date
+    required: false
+
+  - name: end_date
+    view_name: End Date
+    type: date
+    required: false
+
+  - name: status
+    view_name: Status
+    type: picklist.excl
+    required: true
+    values:
+      - draft
+      - active
+      - paused
+      - completed
+      - cancelled
+    default: draft
+
+  # System-managed audit fields
+  - name: created_at
+    view_name: Created At
+    type: datetime
+    required: false
+    system_managed: true
+
+  - name: updated_at
+    view_name: Updated At
+    type: datetime
+    required: false
+    system_managed: true
+
+  - name: deleted_at
+    view_name: Deleted At
+    type: datetime
+    required: false
+    system_managed: true
+
+# Define indexes for common queries
+indexes:
+  - fields: [name]  # For uniqueness validation performance
+  - fields: [status, start_date]
+  - fields: [channel, source, status]
+  - fields: [medium, status]
+  - fields: [created_at]
