@@ -86,3 +86,19 @@ url_parameters:
 
   cookie_prefix: "pb_"
   auto_inject: false
+
+# Session duration tracking
+session_tracking:
+  heartbeat_enabled: true
+  heartbeat_interval_seconds: 30
+  track_page_visibility: true
+  track_focus_blur: true
+  send_final_duration_on_exit: true
+  max_idle_time_seconds: 300  # 5 minutes of inactivity = idle
+
+# URL processing settings
+url_processing:
+  normalize_paths: true
+  strip_query_params: false
+  strip_fragments: true
+  root_path_display: "/"  # Show "/" instead of domain for root pages

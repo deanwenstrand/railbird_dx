@@ -22,45 +22,73 @@ actions:
   - type: python
     name: extract_and_classify_domain
     code: |
-      import re
-      from urllib.parse import urlparse
+      import logging
+      from generated.models import Contact
       
-      # Extract email from contact
-      contact_email = new_contact.get('email', '').lower().strip()
+      logger = logging.getLogger(__name__)
+      logger.info(f"[DEBUG-VARS] Available variables: {list(globals().keys())}")
+      
+      # Debug what variables are actually in the namespace
+      debug_vars = {}
+      for k, v in globals().items():
+          if not k.startswith('__'):
+              debug_vars[k] = type(v).__name__
+      logger.info(f"[DEBUG-VARS] Non-builtin variables: {debug_vars}")
+      
+      # Try to find contact data in different possible variable names
+      contact_data = None
+      contact_email = None
+      
+      # Check if new_contact exists
+      if 'new_contact' in globals():
+          contact_data = new_contact
+          logger.info(f"[DEBUG-VARS] Found new_contact: {contact_data}")
+      else:
+          logger.info(f"[DEBUG-VARS] new_contact not found")
+          
+      # Try other possible variable names that might contain contact data
+      for var_name in ['contact', 'event_data', 'trigger_data', 'relation_data']:
+          if var_name in globals():
+              logger.info(f"[DEBUG-VARS] Found {var_name}: {globals()[var_name]}")
+              
+      # If we found contact data, extract email
+      if contact_data:
+          if isinstance(contact_data, dict):
+              contact_email = contact_data.get('email')
+          else:
+              contact_email = getattr(contact_data, 'email', None)
+      
       if not contact_email or '@' not in contact_email:
           return {
               'success': False,
-              'reason': 'no_valid_email',
-              'domain': None,
-              'registrable_domain': None,
-              'is_shared': False
+              'reason': 'invalid_email',
+              'contact_email': contact_email,
+              'available_vars': list(debug_vars.keys())
           }
       
-      # Extract domain from email
-      domain = contact_email.split('@')[1]
+      # Extract domain
+      domain = contact_email.split('@')[1].lower()
       
-      # List of known shared/free email domains
-      shared_domains = {
-          'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk', 'outlook.com',
-          'hotmail.com', 'msn.com', 'live.com', 'aol.com', 'icloud.com',
-          'me.com', 'mac.com', 'protonmail.com', 'tutanota.com', 'yandex.com',
-          'mail.ru', 'qq.com', '163.com', 'sina.com', 'zoho.com'
-      }
-      
-      # For now, use simple registrable domain logic (could be enhanced with public suffix list)
-      registrable_domain = domain
-      
-      # Check if it's a shared domain
+      # Basic shared domain detection
+      shared_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com']
       is_shared = domain in shared_domains
+      
+      logger.info(f"[DEBUG-VARS] Success! Domain: {domain}, Is shared: {is_shared}")
       
       return {
           'success': True,
           'contact_email': contact_email,
           'domain': domain,
-          'registrable_domain': registrable_domain,
+          'registrable_domain': domain,
           'is_shared': is_shared,
           'reason': 'shared_domain' if is_shared else 'business_domain'
       }
+
+  # Step 1.5: Debug log the Python results
+  - type: log
+    config:
+      message: "[DEBUG-PYTHON] Domain extraction result: success={{results.extract_and_classify_domain.success}} domain={{results.extract_and_classify_domain.domain}} is_shared={{results.extract_and_classify_domain.is_shared}}"
+      level: info
 
   # Step 2: Conditional logic based on domain classification
   - type: conditional
@@ -99,8 +127,12 @@ actions:
             name: find_existing_account
             code: |
               from generated.models import AccountDomain
+              import logging
+              
+              logger = logging.getLogger(__name__)
               
               domain_to_find = results['extract_and_classify_domain']['registrable_domain']
+              logger.info(f"[DEBUG] Looking for existing account with domain: {domain_to_find}")
               
               # Query for existing account_domain matching this registrable domain
               existing_domain = db.query(AccountDomain).filter(
@@ -109,22 +141,34 @@ actions:
                   AccountDomain.scope.in_(['email', 'both'])
               ).first()
               
+              logger.info(f"[DEBUG] Query result: {existing_domain}")
+              
               if existing_domain and existing_domain.account_id:
-                  return {
+                  result = {
                       'found': True,
                       'account_id': existing_domain.account_id,
                       'domain_record_id': existing_domain.id,
                       'registrable_domain': domain_to_find
                   }
+                  logger.info(f"[DEBUG] Found existing account: {result}")
+                  return result
               else:
-                  return {
+                  result = {
                       'found': False,
                       'account_id': None,
                       'domain_record_id': None,
                       'registrable_domain': domain_to_find
                   }
+                  logger.info(f"[DEBUG] No existing account found: {result}")
+                  return result
 
-          # Step 4: Conditional - link to existing account OR create new account
+          # Step 4: Debug the conditional values
+          - type: log
+            config:
+              message: "[DEBUG] About to check conditional - found={{results.find_existing_account.found}}, account_id={{results.find_existing_account.account_id}}"
+              level: info
+
+          # Step 5: Conditional - link to existing account OR create new account
           - type: conditional
             conditions:
               # If existing account found, link contact to it
@@ -133,6 +177,11 @@ actions:
                   operator: equals
                   value: true
                 then:
+                  - type: log
+                    config:
+                      message: "[DEBUG] Entering EXISTING account path - linking contact to account {{results.find_existing_account.account_id}}"
+                      level: info
+
                   - type: python
                     name: link_to_existing_account
                     code: |
@@ -157,6 +206,11 @@ actions:
 
               # No existing account - create new account and domain
               - else:
+                  - type: log
+                    config:
+                      message: "[DEBUG] Entering NEW account path - creating account for domain {{results.find_existing_account.registrable_domain}}"
+                      level: info
+
                   - type: python
                     name: create_account_and_domain
                     code: |
