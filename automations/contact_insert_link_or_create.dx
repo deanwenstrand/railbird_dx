@@ -6,23 +6,259 @@ enabled: true
 trigger:
   type: database_event
   on: record_created
-  tables: [contact]
+  tables: [form_submission]
+  
+  # Only process when form submission is linked to a contact (has a relation)
+  filters:
+    relation_name: "contact"
 
-# Multi-step flow:
-# 1) Extract email domain and classify as shared/non-shared
-# 2) If matches existing Account Domain with account_id, link contact
-# 3) If shared, stop; else create Account and Account Domain, then link
 actions:
-  - ref: contact_extract_domain
-  - ref: contact_link_if_existing_domain
-  - ref: contact_create_account_and_domain
+  - type: log
+    config:
+      message: "[ACCOUNT-LINK] Processing new contact: {{new_contact.id}} email={{new_contact.email}}"
+      level: info
 
-  - type: invoke_automation
-    automation_id: contact_routing
-    payload:
-      contact_id: "{{results.action_python_0.contact_id}}"
-      account_id: "{{results.action_python_2.account_id}}"
+  # Step 1: Extract and classify email domain
+  - type: python
+    name: extract_and_classify_domain
+    code: |
+      import re
+      from urllib.parse import urlparse
+      
+      # Extract email from contact
+      contact_email = new_contact.get('email', '').lower().strip()
+      if not contact_email or '@' not in contact_email:
+          return {
+              'success': False,
+              'reason': 'no_valid_email',
+              'domain': None,
+              'registrable_domain': None,
+              'is_shared': False
+          }
+      
+      # Extract domain from email
+      domain = contact_email.split('@')[1]
+      
+      # List of known shared/free email domains
+      shared_domains = {
+          'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk', 'outlook.com',
+          'hotmail.com', 'msn.com', 'live.com', 'aol.com', 'icloud.com',
+          'me.com', 'mac.com', 'protonmail.com', 'tutanota.com', 'yandex.com',
+          'mail.ru', 'qq.com', '163.com', 'sina.com', 'zoho.com'
+      }
+      
+      # For now, use simple registrable domain logic (could be enhanced with public suffix list)
+      registrable_domain = domain
+      
+      # Check if it's a shared domain
+      is_shared = domain in shared_domains
+      
+      return {
+          'success': True,
+          'contact_email': contact_email,
+          'domain': domain,
+          'registrable_domain': registrable_domain,
+          'is_shared': is_shared,
+          'reason': 'shared_domain' if is_shared else 'business_domain'
+      }
 
+  # Step 2: Conditional logic based on domain classification
+  - type: conditional
+    conditions:
+      # If no valid email, skip processing
+      - if:
+          field: "{{results.extract_and_classify_domain.success}}"
+          operator: equals
+          value: false
+        then:
+          - type: log
+            config:
+              message: "[ACCOUNT-LINK] Skipping contact {{new_contact.id}}: {{results.extract_and_classify_domain.reason}}"
+              level: info
 
-  - ref: contact_final_link_check
+      # If shared domain, skip account linking
+      - elif:
+          field: "{{results.extract_and_classify_domain.is_shared}}"
+          operator: equals
+          value: true
+        then:
+          - type: log
+            config:
+              message: "[ACCOUNT-LINK] Skipping shared domain: {{results.extract_and_classify_domain.domain}} for contact {{new_contact.id}}"
+              level: info
+
+      # Business domain - proceed with account linking
+      - else:
+          - type: log
+            config:
+              message: "[ACCOUNT-LINK] Processing business domain: {{results.extract_and_classify_domain.domain}} for contact {{new_contact.id}}"
+              level: info
+
+          # Step 3: Look for existing account with this domain
+          - type: python
+            name: find_existing_account
+            code: |
+              from generated.models import AccountDomain
+              
+              domain_to_find = results['extract_and_classify_domain']['registrable_domain']
+              
+              # Query for existing account_domain matching this registrable domain
+              existing_domain = db.query(AccountDomain).filter(
+                  AccountDomain.registrable_domain == domain_to_find,
+                  AccountDomain.shared_domain == False,
+                  AccountDomain.scope.in_(['email', 'both'])
+              ).first()
+              
+              if existing_domain and existing_domain.account_id:
+                  return {
+                      'found': True,
+                      'account_id': existing_domain.account_id,
+                      'domain_record_id': existing_domain.id,
+                      'registrable_domain': domain_to_find
+                  }
+              else:
+                  return {
+                      'found': False,
+                      'account_id': None,
+                      'domain_record_id': None,
+                      'registrable_domain': domain_to_find
+                  }
+
+          # Step 4: Conditional - link to existing account OR create new account
+          - type: conditional
+            conditions:
+              # If existing account found, link contact to it
+              - if:
+                  field: "{{results.find_existing_account.found}}"
+                  operator: equals
+                  value: true
+                then:
+                  - type: python
+                    name: link_to_existing_account
+                    code: |
+                      from generated.models import Contact
+                      
+                      contact_id = new_contact['id']
+                      account_id = results['find_existing_account']['account_id']
+                      
+                      # Update the contact with the account_id
+                      contact = db.query(Contact).filter(Contact.id == contact_id).first()
+                      if contact:
+                          contact.account_id = account_id
+                          db.commit()
+                          return {'success': True, 'contact_id': contact_id, 'account_id': account_id}
+                      else:
+                          return {'success': False, 'error': 'Contact not found'}
+                  
+                  - type: log
+                    config:
+                      message: "[ACCOUNT-LINK] Linked contact {{new_contact.id}} to existing account {{results.find_existing_account.account_id}} via domain {{results.find_existing_account.registrable_domain}}"
+                      level: info
+
+              # No existing account - create new account and domain
+              - else:
+                  - type: python
+                    name: create_account_and_domain
+                    code: |
+                      from generated.models import Account, AccountDomain
+                      import uuid
+                      
+                      domain = results['extract_and_classify_domain']['registrable_domain']
+                      
+                      # Generate company name from domain
+                      def domain_to_company_name(domain):
+                          # Remove TLD and common prefixes
+                          name_part = domain.split('.')[0]
+                          # Capitalize first letter
+                          name_part = name_part.replace('-', ' ').replace('_', ' ')
+                          words = name_part.split()
+                          company_name = ' '.join(word.capitalize() for word in words)
+                          # Add "Inc" if it looks too short
+                          if len(company_name) < 10:
+                              company_name += " Inc"
+                          return company_name
+                      
+                      company_name = domain_to_company_name(domain)
+                      
+                      # Create new Account
+                      new_account = Account(
+                          company_name=company_name,
+                          account_type='prospect',
+                          industry='other',  # Default industry
+                          status='active',
+                          contact_email=new_contact.get('email'),
+                          primary_contact=f"{new_contact.get('first_name', '')} {new_contact.get('last_name', '')}".strip()
+                      )
+                      db.add(new_account)
+                      db.flush()  # Get the ID
+                      
+                      # Create AccountDomain record
+                      account_domain = AccountDomain(
+                          account_id=new_account.id,
+                          full_domain=domain,
+                          registrable_domain=domain,
+                          scope='email',
+                          role='primary',
+                          shared_domain=False
+                      )
+                      db.add(account_domain)
+                      db.flush()
+                      
+                      return {
+                          'account_id': new_account.id,
+                          'account_name': company_name,
+                          'domain_record_id': account_domain.id,
+                          'domain': domain
+                      }
+
+                  - type: python
+                    name: link_to_new_account
+                    code: |
+                      from generated.models import Contact
+                      
+                      contact_id = new_contact['id']
+                      account_id = results['create_account_and_domain']['account_id']
+                      
+                      # Update the contact with the new account_id
+                      contact = db.query(Contact).filter(Contact.id == contact_id).first()
+                      if contact:
+                          contact.account_id = account_id
+                          db.commit()
+                          return {'success': True, 'contact_id': contact_id, 'account_id': account_id}
+                      else:
+                          return {'success': False, 'error': 'Contact not found'}
+
+                  - type: log
+                    config:
+                      message: "[ACCOUNT-LINK] Created new account {{results.create_account_and_domain.account_id}} ({{results.create_account_and_domain.account_name}}) for domain {{results.create_account_and_domain.domain}} and linked contact {{new_contact.id}}"
+                      level: info
+
+          # Step 5: Invoke contact routing automation for assignment
+          - type: python
+            name: determine_account_for_routing
+            code: |
+              # Determine which account_id to use for routing
+              if results.get('find_existing_account', {}).get('found'):
+                  account_id = results['find_existing_account']['account_id']
+              elif results.get('create_account_and_domain', {}).get('account_id'):
+                  account_id = results['create_account_and_domain']['account_id']
+              else:
+                  account_id = None
+              
+              return {
+                  'contact_id': new_contact['id'],
+                  'account_id': account_id
+              }
+
+          - type: invoke_automation
+            config:
+              automation_id: contact_routing
+              data:
+                contact_id: "{{results.determine_account_for_routing.contact_id}}"
+                account_id: "{{results.determine_account_for_routing.account_id}}"
+
+          - type: log
+            config:
+              message: "[ACCOUNT-LINK] Completed processing for contact {{new_contact.id}}"
+              level: info
 

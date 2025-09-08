@@ -1,7 +1,7 @@
 type: automation
 name: contact_routing_us
 description: "Assign US contacts to owner 1 on insert (by 2-letter state)"
-enabled: true
+enabled: false  # Disabled - action references no longer exist
 
 trigger:
   type: database_event

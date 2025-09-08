@@ -1,7 +1,7 @@
 type: automation
 name: contact_routing_row
 description: "Clear owner for non-US contacts on insert"
-enabled: true
+enabled: false  # Disabled - action references no longer exist
 
 trigger:
   type: database_event

@@ -17,7 +17,6 @@ request_mapping:
   to: "{{recipient_email}}"
   subject: "{{subject}}"
   body: "{{message}}"
-  from_name: "Playbook CRM"
   from_email: "{{env.GMAIL_USERNAME}}"
   content_type: "text/plain"
 

@@ -4,7 +4,7 @@ content_type: email_template
 description: "Confirmation email sent to the contact after submitting the contact form"
 
 template:
-  subject: "Thanks, {{first_name}} — we received your details ✅"
+  subject: "Thanks, {{first_name}} — we received your details"
   format: plain_text
   body: |
     Hi {{first_name}},

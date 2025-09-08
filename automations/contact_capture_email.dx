@@ -10,13 +10,20 @@ trigger:
   
   # Only fire for our specific form and when the submission is linked to a Contact
   filters:
-    form_name: "contact_capture_form"
+    form_name: "website_contact_us"
     relation_name: "contact"
 
 action:
-  ref: contact_capture_send_notification
-  with:
-    # No explicit recipient; action plugin will fall back to form_submission payload email
-    data: {}
+  type: integration_call
+  integration: gmail_notifications
+  template: contact_capture_notification
+  data:
+    recipient_email: "{{new_contact.email}}"
+    # Template variables for contact_capture_notification.dx
+    first_name: "{{new_contact.first_name}}"
+    last_name: "{{new_contact.last_name}}"
+    email: "{{new_contact.email}}"
+    phone: "{{new_contact.phone}}"
+    id: "{{new_contact.id}}"
 
 

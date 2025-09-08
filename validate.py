@@ -160,7 +160,7 @@ class PlayScriptValidator:
             self.action_names.add(name)
         
         implementation = data.get('implementation')
-        valid_implementations = ['llm', 'create_record', 'integration_call', 'orchestration', 'search']
+        valid_implementations = ['create_record', 'integration_call', 'python', 'api_call']
         if implementation and implementation not in valid_implementations:
             self.errors.append(ValidationError(
                 str(file_path), "invalid_implementation", 
@@ -178,20 +178,7 @@ class PlayScriptValidator:
                 str(file_path), "invalid_schema", "output_schema must be an object"
             ))
         
-        # Validate orchestration steps
-        if implementation == 'orchestration':
-            defaults = data.get('defaults', {})
-            steps = defaults.get('steps', [])
-            if not isinstance(steps, list):
-                self.errors.append(ValidationError(
-                    str(file_path), "invalid_orchestration", "orchestration steps must be a list"
-                ))
-            else:
-                for i, step in enumerate(steps):
-                    if not isinstance(step, dict) or 'ref' not in step:
-                        self.errors.append(ValidationError(
-                            str(file_path), "invalid_step", f"Step {i} must have 'ref' field"
-                        ))
+        # NOTE: orchestration validation removed - implementation type no longer supported
         
         # Validate tags
         tags = data.get('tags', [])
@@ -349,8 +336,7 @@ class PlayScriptValidator:
                 self._validate_layout_references(file_path, data)
             elif file_type == 'form':
                 self._validate_form_references(file_path, data)
-            elif file_type == 'action' and data.get('implementation') == 'orchestration':
-                self._validate_orchestration_references(file_path, data)
+            # NOTE: orchestration reference validation removed - implementation type no longer supported
             elif file_type == 'action' and data.get('implementation') == 'integration_call':
                 self._validate_integration_references(file_path, data)
     
@@ -419,17 +405,7 @@ class PlayScriptValidator:
                             file_path, "missing_field_reference", f"Field not found: {maps_to}"
                         ))
     
-    def _validate_orchestration_references(self, file_path: str, data: Dict[str, Any]):
-        """Validate orchestration step references"""
-        defaults = data.get('defaults', {})
-        steps = defaults.get('steps', [])
-        for step in steps:
-            if isinstance(step, dict) and 'ref' in step:
-                ref = step['ref']
-                if ref not in self.action_names:
-                    self.errors.append(ValidationError(
-                        file_path, "missing_action_reference", f"Action not found: {ref}"
-                    ))
+    # NOTE: _validate_orchestration_references method removed - implementation type no longer supported
     
     def _validate_integration_references(self, file_path: str, data: Dict[str, Any]):
         """Validate integration references"""
