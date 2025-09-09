@@ -25,7 +25,7 @@ components:
     permissions:
       required_permission: "read"
       
-  # Global save button - Shows "Edit" when not editing, "Save" when editing
+  # Global save button - Only shows when there are unsaved changes
   - type: global_save_button
     name: global_save
     view_name: "Save"
@@ -33,7 +33,7 @@ components:
     behavior:
       batch_save: true
       show_change_count: false
-      auto_hide: false
+      auto_hide: true
       success_message: "Changes saved successfully"
     permissions:
       required_permission: "edit"

@@ -13,32 +13,7 @@ auth:
 request_mapping:
   headers:
     Content-Type: "application/json"
-  body_template: |
-    {
-      "text": "{{message}}",
-      "channel": "{{channel|default:env.SLACK_CHANNEL}}",
-      "username": "{{env.SLACK_USERNAME}}",
-      "attachments": [
-        {
-          "color": "{{color|default:'good'}}",
-          "fields": [
-            {
-              "title": "{{title|default:'Notification'}}",
-              "value": "{{details|default:''}}",
-              "short": false
-            }
-          ],
-          "actions": [
-            {
-              "type": "button",
-              "text": "View Contact in CRM",
-              "url": "{{crm_link|default:'#'}}",
-              "style": "primary"
-            }
-          ]
-        }
-      ]
-    }
+  body_template: '{"text": "{{message}}", "channel": "{{channel|default:env.SLACK_CHANNEL}}", "username": "{{env.SLACK_USERNAME}}", "attachments": [{"color": "{{color|default:good}}", "fields": [{"title": "{{title|default:Notification}}", "value": "{{details|default:}}", "short": false}], "actions": [{"type": "button", "text": "View Contact in CRM", "url": "{{crm_link|default:#}}", "style": "primary"}]}]}'
 
 response_mapping:
   success_condition: "status_code == 200"

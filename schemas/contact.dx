@@ -182,6 +182,7 @@ fields:
     required: false
     system_managed: true
 
+
 joins:
   - name: signals
     view_name: Signals

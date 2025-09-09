@@ -6,11 +6,7 @@ enabled: true
 trigger:
   type: database_event
   on: record_created
-  tables: [form_submission]
-  
-  # Only process when form submission is linked to a contact (has a relation)
-  filters:
-    relation_name: "contact"
+  tables: [contact]
 
 actions:
   - type: log
@@ -23,47 +19,18 @@ actions:
     name: extract_and_classify_domain
     code: |
       import logging
-      from generated.models import Contact
       
       logger = logging.getLogger(__name__)
-      logger.info(f"[DEBUG-VARS] Available variables: {list(globals().keys())}")
       
-      # Debug what variables are actually in the namespace
-      debug_vars = {}
-      for k, v in globals().items():
-          if not k.startswith('__'):
-              debug_vars[k] = type(v).__name__
-      logger.info(f"[DEBUG-VARS] Non-builtin variables: {debug_vars}")
-      
-      # Try to find contact data in different possible variable names
-      contact_data = None
-      contact_email = None
-      
-      # Check if new_contact exists
-      if 'new_contact' in globals():
-          contact_data = new_contact
-          logger.info(f"[DEBUG-VARS] Found new_contact: {contact_data}")
-      else:
-          logger.info(f"[DEBUG-VARS] new_contact not found")
-          
-      # Try other possible variable names that might contain contact data
-      for var_name in ['contact', 'event_data', 'trigger_data', 'relation_data']:
-          if var_name in globals():
-              logger.info(f"[DEBUG-VARS] Found {var_name}: {globals()[var_name]}")
-              
-      # If we found contact data, extract email
-      if contact_data:
-          if isinstance(contact_data, dict):
-              contact_email = contact_data.get('email')
-          else:
-              contact_email = getattr(contact_data, 'email', None)
+      # Get contact email directly from new_contact
+      contact_email = new_contact.get('email') if isinstance(new_contact, dict) else getattr(new_contact, 'email', None)
       
       if not contact_email or '@' not in contact_email:
+          logger.warning(f"[ACCOUNT-LINK] Invalid email for contact {new_contact.get('id')}: {contact_email}")
           return {
               'success': False,
               'reason': 'invalid_email',
-              'contact_email': contact_email,
-              'available_vars': list(debug_vars.keys())
+              'contact_email': contact_email
           }
       
       # Extract domain
@@ -73,7 +40,7 @@ actions:
       shared_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com']
       is_shared = domain in shared_domains
       
-      logger.info(f"[DEBUG-VARS] Success! Domain: {domain}, Is shared: {is_shared}")
+      logger.info(f"[ACCOUNT-LINK] Domain analysis: {domain}, is_shared: {is_shared}")
       
       return {
           'success': True,
@@ -90,229 +57,125 @@ actions:
       message: "[DEBUG-PYTHON] Domain extraction result: success={{results.extract_and_classify_domain.success}} domain={{results.extract_and_classify_domain.domain}} is_shared={{results.extract_and_classify_domain.is_shared}}"
       level: info
 
-  # Step 2: Conditional logic based on domain classification
-  - type: conditional
-    conditions:
-      # If no valid email, skip processing
-      - if:
-          field: "{{results.extract_and_classify_domain.success}}"
-          operator: equals
-          value: false
-        then:
-          - type: log
-            config:
-              message: "[ACCOUNT-LINK] Skipping contact {{new_contact.id}}: {{results.extract_and_classify_domain.reason}}"
-              level: info
-
-      # If shared domain, skip account linking
-      - elif:
-          field: "{{results.extract_and_classify_domain.is_shared}}"
-          operator: equals
-          value: true
-        then:
-          - type: log
-            config:
-              message: "[ACCOUNT-LINK] Skipping shared domain: {{results.extract_and_classify_domain.domain}} for contact {{new_contact.id}}"
-              level: info
-
+  # Step 2: Account linking logic (all-in-one)
+  - type: python
+    name: process_account_linking
+    code: |
+      from generated.models import Contact, Account, AccountDomain
+      import logging
+      
+      logger = logging.getLogger(__name__)
+      
+      # Get domain extraction results
+      domain_result = results.get('extract_and_classify_domain', {})
+      
+      # Check if domain extraction was successful
+      if not domain_result.get('success'):
+          logger.info(f"[ACCOUNT-LINK] Skipping contact {new_contact.get('id')}: {domain_result.get('reason', 'unknown error')}")
+          return {'success': False, 'reason': domain_result.get('reason', 'unknown error')}
+      
+      # Check if it's a shared domain
+      if domain_result.get('is_shared'):
+          logger.info(f"[ACCOUNT-LINK] Skipping shared domain: {domain_result.get('domain')} for contact {new_contact.get('id')}")
+          return {'success': False, 'reason': 'shared_domain', 'domain': domain_result.get('domain')}
+      
       # Business domain - proceed with account linking
-      - else:
-          - type: log
-            config:
-              message: "[ACCOUNT-LINK] Processing business domain: {{results.extract_and_classify_domain.domain}} for contact {{new_contact.id}}"
-              level: info
-
-          # Step 3: Look for existing account with this domain
-          - type: python
-            name: find_existing_account
-            code: |
-              from generated.models import AccountDomain
-              import logging
+      domain = domain_result.get('registrable_domain')
+      logger.info(f"[ACCOUNT-LINK] Processing business domain: {domain} for contact {new_contact.get('id')}")
+      
+      # Step 3: Look for existing account with this domain
+      logger.info(f"[DEBUG] Looking for existing account with domain: {domain}")
+      existing_domain = db.query(AccountDomain).filter(
+          AccountDomain.registrable_domain == domain,
+          AccountDomain.shared_domain == False,
+          AccountDomain.scope.in_(['email', 'both'])
+      ).first()
+      
+      contact_id = new_contact.get('id')
+      
+      if existing_domain and existing_domain.account_id:
+          # Link to existing account
+          logger.info(f"[DEBUG] Found existing account: {existing_domain.account_id}")
+          
+          contact = db.query(Contact).filter(Contact.id == contact_id).first()
+          if contact:
+              contact.account_id = existing_domain.account_id
               
-              logger = logging.getLogger(__name__)
+              # Check for account owner assignment
+              account = db.query(Account).filter(Account.id == existing_domain.account_id).first()
+              if account and hasattr(account, 'owner_id') and account.owner_id:
+                  contact.assigned_to = account.owner_id
+                  logger.info(f"[ACCOUNT-LINK] Assigned contact to account owner {account.owner_id}")
               
-              domain_to_find = results['extract_and_classify_domain']['registrable_domain']
-              logger.info(f"[DEBUG] Looking for existing account with domain: {domain_to_find}")
-              
-              # Query for existing account_domain matching this registrable domain
-              existing_domain = db.query(AccountDomain).filter(
-                  AccountDomain.registrable_domain == domain_to_find,
-                  AccountDomain.shared_domain == False,
-                  AccountDomain.scope.in_(['email', 'both'])
-              ).first()
-              
-              logger.info(f"[DEBUG] Query result: {existing_domain}")
-              
-              if existing_domain and existing_domain.account_id:
-                  result = {
-                      'found': True,
-                      'account_id': existing_domain.account_id,
-                      'domain_record_id': existing_domain.id,
-                      'registrable_domain': domain_to_find
-                  }
-                  logger.info(f"[DEBUG] Found existing account: {result}")
-                  return result
-              else:
-                  result = {
-                      'found': False,
-                      'account_id': None,
-                      'domain_record_id': None,
-                      'registrable_domain': domain_to_find
-                  }
-                  logger.info(f"[DEBUG] No existing account found: {result}")
-                  return result
-
-          # Step 4: Debug the conditional values
-          - type: log
-            config:
-              message: "[DEBUG] About to check conditional - found={{results.find_existing_account.found}}, account_id={{results.find_existing_account.account_id}}"
-              level: info
-
-          # Step 5: Conditional - link to existing account OR create new account
-          - type: conditional
-            conditions:
-              # If existing account found, link contact to it
-              - if:
-                  field: "{{results.find_existing_account.found}}"
-                  operator: equals
-                  value: true
-                then:
-                  - type: log
-                    config:
-                      message: "[DEBUG] Entering EXISTING account path - linking contact to account {{results.find_existing_account.account_id}}"
-                      level: info
-
-                  - type: python
-                    name: link_to_existing_account
-                    code: |
-                      from generated.models import Contact
-                      
-                      contact_id = new_contact['id']
-                      account_id = results['find_existing_account']['account_id']
-                      
-                      # Update the contact with the account_id
-                      contact = db.query(Contact).filter(Contact.id == contact_id).first()
-                      if contact:
-                          contact.account_id = account_id
-                          db.commit()
-                          return {'success': True, 'contact_id': contact_id, 'account_id': account_id}
-                      else:
-                          return {'success': False, 'error': 'Contact not found'}
-                  
-                  - type: log
-                    config:
-                      message: "[ACCOUNT-LINK] Linked contact {{new_contact.id}} to existing account {{results.find_existing_account.account_id}} via domain {{results.find_existing_account.registrable_domain}}"
-                      level: info
-
-              # No existing account - create new account and domain
-              - else:
-                  - type: log
-                    config:
-                      message: "[DEBUG] Entering NEW account path - creating account for domain {{results.find_existing_account.registrable_domain}}"
-                      level: info
-
-                  - type: python
-                    name: create_account_and_domain
-                    code: |
-                      from generated.models import Account, AccountDomain
-                      import uuid
-                      
-                      domain = results['extract_and_classify_domain']['registrable_domain']
-                      
-                      # Generate company name from domain
-                      def domain_to_company_name(domain):
-                          # Remove TLD and common prefixes
-                          name_part = domain.split('.')[0]
-                          # Capitalize first letter
-                          name_part = name_part.replace('-', ' ').replace('_', ' ')
-                          words = name_part.split()
-                          company_name = ' '.join(word.capitalize() for word in words)
-                          # Add "Inc" if it looks too short
-                          if len(company_name) < 10:
-                              company_name += " Inc"
-                          return company_name
-                      
-                      company_name = domain_to_company_name(domain)
-                      
-                      # Create new Account
-                      new_account = Account(
-                          company_name=company_name,
-                          account_type='prospect',
-                          industry='other',  # Default industry
-                          status='active',
-                          contact_email=new_contact.get('email'),
-                          primary_contact=f"{new_contact.get('first_name', '')} {new_contact.get('last_name', '')}".strip()
-                      )
-                      db.add(new_account)
-                      db.flush()  # Get the ID
-                      
-                      # Create AccountDomain record
-                      account_domain = AccountDomain(
-                          account_id=new_account.id,
-                          full_domain=domain,
-                          registrable_domain=domain,
-                          scope='email',
-                          role='primary',
-                          shared_domain=False
-                      )
-                      db.add(account_domain)
-                      db.flush()
-                      
-                      return {
-                          'account_id': new_account.id,
-                          'account_name': company_name,
-                          'domain_record_id': account_domain.id,
-                          'domain': domain
-                      }
-
-                  - type: python
-                    name: link_to_new_account
-                    code: |
-                      from generated.models import Contact
-                      
-                      contact_id = new_contact['id']
-                      account_id = results['create_account_and_domain']['account_id']
-                      
-                      # Update the contact with the new account_id
-                      contact = db.query(Contact).filter(Contact.id == contact_id).first()
-                      if contact:
-                          contact.account_id = account_id
-                          db.commit()
-                          return {'success': True, 'contact_id': contact_id, 'account_id': account_id}
-                      else:
-                          return {'success': False, 'error': 'Contact not found'}
-
-                  - type: log
-                    config:
-                      message: "[ACCOUNT-LINK] Created new account {{results.create_account_and_domain.account_id}} ({{results.create_account_and_domain.account_name}}) for domain {{results.create_account_and_domain.domain}} and linked contact {{new_contact.id}}"
-                      level: info
-
-          # Step 5: Invoke contact routing automation for assignment
-          - type: python
-            name: determine_account_for_routing
-            code: |
-              # Determine which account_id to use for routing
-              if results.get('find_existing_account', {}).get('found'):
-                  account_id = results['find_existing_account']['account_id']
-              elif results.get('create_account_and_domain', {}).get('account_id'):
-                  account_id = results['create_account_and_domain']['account_id']
-              else:
-                  account_id = None
-              
+              db.commit()
+              logger.info(f"[ACCOUNT-LINK] Linked contact {contact_id} to existing account {existing_domain.account_id}")
               return {
-                  'contact_id': new_contact['id'],
-                  'account_id': account_id
+                  'success': True,
+                  'action': 'linked_existing',
+                  'contact_id': contact_id,
+                  'account_id': existing_domain.account_id,
+                  'domain': domain
               }
+          else:
+              return {'success': False, 'error': 'Contact not found'}
+      else:
+          # Create new account and domain
+          logger.info(f"[DEBUG] No existing account found, creating new one")
+          
+          # Get company name from contact - fail if missing
+          company_name = new_contact.get('company_name', '').strip()
+          if not company_name:
+              logger.error(f"[ACCOUNT-LINK] No company name provided for contact {new_contact.get('id')} with domain {domain}")
+              return {
+                  'success': False, 
+                  'error': 'missing_company_name',
+                  'contact_id': new_contact.get('id'),
+                  'domain': domain
+              }
+          
+          logger.info(f"[ACCOUNT-LINK] Creating account '{company_name}' for domain {domain}")
+          
+          # Create new Account
+          new_account = Account(
+              company_name=company_name,
+              account_type='prospect',
+              industry='other',
+              status='active'
+          )
+          db.add(new_account)
+          db.flush()  # Get the ID
+          
+          # Create AccountDomain record
+          account_domain = AccountDomain(
+              account_id=new_account.id,
+              full_domain=domain,
+              registrable_domain=domain,
+              scope='email',
+              role='primary',
+              shared_domain=False
+          )
+          db.add(account_domain)
+          
+          # Link contact to new account
+          contact = db.query(Contact).filter(Contact.id == contact_id).first()
+          if contact:
+              contact.account_id = new_account.id
+              db.commit()
+              
+              logger.info(f"[ACCOUNT-LINK] Created account {new_account.id} and linked contact {contact_id}")
+              return {
+                  'success': True,
+                  'action': 'created_new',
+                  'contact_id': contact_id,
+                  'account_id': new_account.id,
+                  'account_name': company_name,
+                  'domain': domain
+              }
+          else:
+              return {'success': False, 'error': 'Contact not found'}
 
-          - type: invoke_automation
-            config:
-              automation_id: contact_routing
-              data:
-                contact_id: "{{results.determine_account_for_routing.contact_id}}"
-                account_id: "{{results.determine_account_for_routing.account_id}}"
-
-          - type: log
-            config:
-              message: "[ACCOUNT-LINK] Completed processing for contact {{new_contact.id}}"
-              level: info
+  - type: log
+    config:
+      message: "[ACCOUNT-LINK] Completed processing: {{results.process_account_linking.action}} for contact {{new_contact.id}}"
+      level: info
 

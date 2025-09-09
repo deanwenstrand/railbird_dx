@@ -8,39 +8,6 @@ description: the default account layout
 components:
 
 
-  - type: link
-    name: company_website
-    view_name: Visit Website
-    location: top_navigation
-    style_override:
-      font_size: 16
-      font_weight: bold
-      color: "#0070d2"
-      background_color: "#f0f8ff"
-      padding: "4px 8px"
-      border_radius: 4px
-    url: "{account.website}"
-
-  - type: action
-    name: send_account_update
-    view_name: Send Account Update
-    location: top_navigation
-    icon:
-      react: |
-        import { Envelope } from "phosphor-react"
-
-        <Envelope size={20} color="white" weight="bold" />
-    description: Send an account update email to the primary contact.
-    style_override:
-      font_size: 16
-      color: "#ffffff"
-      background_color: "#28a745"
-      padding: "6px 12px"
-      border_radius: 4px
-    action: account.send_email
-    params:
-      to: "{account.contact_email}"
-      template_id: "account_update_email"
 
   - type: field_section
     name: basic_info
@@ -52,17 +19,54 @@ components:
       - account_type
       - industry
       - status
-
-  - type: field_section
-    name: contact_info
-    view_name: Contact Information
-    location: main
-    layout: two_column
-    fields:
-      - primary_contact
-      - contact_email
-      - contact_phone
       - account_manager
+
+  - type: react_component
+    name: original_contact_info
+    view_name: Original Contact
+    location: main
+    description: Contact information from the first person who engaged with this account
+    react: |
+      const originalContact = account.original_contact;
+      
+      if (!originalContact) {
+        return (
+          <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #e9ecef' }}>
+            <p style={{ margin: 0, color: '#6c757d', fontStyle: 'italic' }}>No original contact found</p>
+          </div>
+        );
+      }
+      
+      return (
+        <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #e9ecef' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontWeight: 'bold', color: '#495057', marginBottom: '4px' }}>
+                First Name
+              </label>
+              <span style={{ color: '#212529' }}>{originalContact.first_name || '-'}</span>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 'bold', color: '#495057', marginBottom: '4px' }}>
+                Last Name
+              </label>
+              <span style={{ color: '#212529' }}>{originalContact.last_name || '-'}</span>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 'bold', color: '#495057', marginBottom: '4px' }}>
+                Email
+              </label>
+              <span style={{ color: '#212529' }}>{originalContact.email || '-'}</span>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 'bold', color: '#495057', marginBottom: '4px' }}>
+                Phone
+              </label>
+              <span style={{ color: '#212529' }}>{originalContact.phone || '-'}</span>
+            </div>
+          </div>
+        </div>
+      )
 
   - type: field_section
     name: company_details
@@ -83,42 +87,6 @@ components:
       - contract_start_date
       - contract_end_date
 
-  - type: react_component
-    name: revenue_chart
-    view_name: Revenue Trend
-    location: main
-    description: Shows a chart of monthly contract value trend
-    react: |
-      const chartData = [
-        { month: 'Jan', value: account.monthly_value * 0.8 },
-        { month: 'Feb', value: account.monthly_value * 0.9 },
-        { month: 'Mar', value: account.monthly_value * 1.0 },
-        { month: 'Apr', value: account.monthly_value * 1.1 },
-        { month: 'May', value: account.monthly_value * 1.0 },
-        { month: 'Jun', value: account.monthly_value },
-      ]
-
-      const maxValue = Math.max(...chartData.map(d => d.value))
-
-      return (
-        <div style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'end', height: '200px', gap: '10px' }}>
-            {chartData.map((data, index) => (
-              <div key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div 
-                  style={{ 
-                    width: '30px', 
-                    height: `${(data.value / maxValue) * 150}px`, 
-                    backgroundColor: '#0070d2',
-                    marginBottom: '5px'
-                  }}
-                />
-                <span style={{ fontSize: '12px' }}>{data.month}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )
 
   - type: field_section
     name: addresses
@@ -160,6 +128,19 @@ components:
       - close_date
       - probability
   
+  - type: related_list
+    name: contacts
+    view_name: All Contacts
+    location: main
+    data: account.contacts
+    fields:
+      - first_name
+      - last_name
+      - email
+      - phone
+      - status
+      - created_at
+
   - type: related_list
     name: account_domains
     view_name: Account Domains
