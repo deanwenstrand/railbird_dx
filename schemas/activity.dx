@@ -13,8 +13,7 @@ endpoints:
 ## object_layout removed – detail pages are always available via default layout fallback
 add_to_top_nav: false  # Not a main nav item, just related lists
 search:
-  enabled: true
-  label: "Activities"
+  enabled: false
 fields:
 - name: id
   view_name: Id

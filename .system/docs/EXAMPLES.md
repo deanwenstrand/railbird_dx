@@ -280,7 +280,7 @@ components:
     name: account_info
     view_name: Account Information
     location: main
-    layout: one_column
+    layout: single_column
     fields:
       - account_id
 
@@ -289,7 +289,7 @@ components:
     name: preferences
     view_name: Preferences
     location: sidebar
-    layout: one_column
+    layout: single_column
     fields:
       - preferred_contact_method
 

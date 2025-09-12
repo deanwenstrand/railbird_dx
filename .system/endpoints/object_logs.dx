@@ -34,9 +34,9 @@ response_logic: |
       'object_change' as event_type,
       operation as event_detail,
       CASE 
-        WHEN operation = 'UPDATE' THEN 'Record updated'
-        WHEN operation = 'CREATE' THEN 'Record created'
-        WHEN operation = 'DELETE' THEN 'Record deleted'
+        WHEN operation = 'UPDATE' THEN 'record updated'
+        WHEN operation = 'CREATE' THEN 'record created'
+        WHEN operation = 'DELETE' THEN 'record deleted'
         ELSE operation
       END as event_description,
       user_id,
@@ -54,7 +54,7 @@ response_logic: |
       created_at::timestamp as timestamp,
       'form_submission' as event_type,
       form_name as event_detail,
-      'Form submitted: ' || COALESCE(linking_action, 'Unknown') as event_description,
+      'form submitted: ' || LOWER(COALESCE(linking_action, 'unknown')) as event_description,
       NULL as user_id,
       'web_form' as source_system,
       'create' as change_type,

@@ -5,11 +5,99 @@ enabled: true
 
 trigger:
   type: database_event
-  on: record_updated
+  "on": [record_created, record_updated]
   tables: "all_user_schemas"
   exclude_tables: ["object_change_log"]
 
 action:
-  ref: object_change_log_create
-  with: {}
+  type: python
+  name: create_change_log
+  code: |
+    import json
+    from generated.models import ObjectChangeLog
+    from core.utils.dxid import generate_dxid
+    
+    # Extract context data
+    table_name = context.table
+    record_id = context.record.get('id')  
+    event_type = context.event_type
+    old_record = getattr(context, 'old_record', {}) or {}
+    new_record = context.record or {}
+    changed_fields = getattr(context, 'changed_fields', [])
+    user_id = getattr(context, 'user_id', None)
+    
+    # Custom JSON encoder for datetime objects
+    def json_serialize(obj):
+        if hasattr(obj, 'isoformat'):  # datetime, date, time objects
+            return obj.isoformat()
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+    
+    # Clean record data to avoid database literal strings
+    def clean_record(record):
+        if not record:
+            return record
+        cleaned = {}
+        for key, value in record.items():
+            # Skip problematic database literals
+            if isinstance(value, str) and value in ('CURRENT_TIMESTAMP', 'NOW()', 'NULL'):
+                cleaned[key] = f"<{value}>"  # Mark as literal for debugging
+            else:
+                cleaned[key] = value
+        return cleaned
+    
+    # Convert records to JSON strings with datetime handling and cleaning
+    clean_old = clean_record(old_record)
+    clean_new = clean_record(new_record)
+    
+    old_values_json = json.dumps(clean_old, default=json_serialize) if clean_old else None
+    new_values_json = json.dumps(clean_new, default=json_serialize) if clean_new else None
+    changed_fields_json = json.dumps(changed_fields, default=json_serialize) if changed_fields else None
+    
+    # Determine the source of the change
+    source_system = "unknown"
+    try:
+        # Try to get correlation ID to determine if this is from a web request
+        from core.web.correlation_middleware import get_correlation_id
+        correlation_id = get_correlation_id()
+        if correlation_id and not correlation_id.startswith("direct_test_"):
+            source_system = "web_interface"  # User action via web UI
+        else:
+            source_system = "system"  # Automated/background process
+    except Exception:
+        source_system = "system"
+
+    # Create change log record
+    from datetime import datetime
+    change_log = ObjectChangeLog(
+        id=generate_dxid(),
+        table_name=table_name,
+        record_id=record_id,
+        operation=event_type.upper(),
+        old_values=old_values_json,
+        new_values=new_values_json,
+        changed_fields=changed_fields_json,
+        timestamp=datetime.now(),
+        user_id=user_id,
+        source_system=source_system
+    )
+    
+    context.db.add(change_log)
+    logger.info(f"[CHANGE-LOG-DEBUG] Added change log to session: {change_log.id}")
+    
+    context.db.flush()
+    logger.info(f"[CHANGE-LOG-DEBUG] Flushed session - change log should be visible in transaction")
+    
+    # Try to commit the change log
+    try:
+        context.db.commit()
+        logger.info(f"[CHANGE-LOG-DEBUG] Successfully committed change log: {change_log.id}")
+    except Exception as commit_error:
+        logger.error(f"[CHANGE-LOG-DEBUG] Commit failed: {commit_error}")
+        context.db.rollback()
+        logger.error(f"[CHANGE-LOG-DEBUG] Rolled back transaction")
+        raise commit_error
+    
+    logger.info(f"[CHANGE-LOG] Created change log for {table_name}:{record_id} operation:{event_type}")
+    
+    return {"success": True, "change_log_id": change_log.id}
 

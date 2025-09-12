@@ -4,6 +4,10 @@ view_name: Users
 description: System user account
 deletion_mode: soft
 
+search:
+  enabled: true
+  label: "Users"
+
 endpoints:
   - GET
   - POST
@@ -24,11 +28,17 @@ fields:
   required: true
   unique: true
   length: 200
+  search:
+    enabled: true
+    weight: B
 
 - name: name
   type: string
   required: false
   length: 200
+  search:
+    enabled: true
+    weight: A
 
 - name: is_active
   type: boolean
@@ -68,6 +78,9 @@ fields:
   length: 200
   view_name: Company Name
   default: "Playbook CRM"
+  search:
+    enabled: true
+    weight: C
 
 - name: password_hash
   type: string
@@ -86,6 +99,12 @@ fields:
 
 - name: deleted_at
   type: datetime
+  required: false
+  system_managed: true
+
+- name: search_vector
+  view_name: Search Vector
+  type: string
   required: false
   system_managed: true
 

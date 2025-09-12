@@ -15,8 +15,7 @@ endpoints:
 
 add_to_top_nav: true          # Show Touches in the main navigation
 search:
-  enabled: true
-  label: "Touches"
+  enabled: false
 
 default_list_view:
   fields:
@@ -90,6 +89,12 @@ fields:
   - name: deleted_at
     view_name: Deleted At
     type: datetime
+    required: false
+    system_managed: true
+
+  - name: search_vector
+    view_name: Search Vector
+    type: string
     required: false
     system_managed: true
 

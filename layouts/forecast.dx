@@ -1,0 +1,54 @@
+type: layout
+name: forecast
+add_to_global_nav: true
+weight: 350
+description: Layout for sales forecast management and tracking
+
+components:
+  - type: field_section
+    name: forecast_overview
+    view_name: Forecast Overview
+    location: main
+    fields:
+      - forecast_name
+      - forecast_period
+      - territory
+      - opportunity_id
+      - owner_name
+      - forecast_status
+
+  - type: field_section
+    name: forecast_amounts
+    view_name: Forecast Amounts
+    location: main
+    fields:
+      - quota_amount
+      - committed_amount
+      - best_case_amount
+      - pipeline_amount
+      - confidence_level
+
+  - type: field_section
+    name: forecast_details
+    view_name: Additional Details
+    location: main
+    fields:
+      - forecast_category
+      - submit_date
+      - approval_date
+      - approved_by
+      - notes
+
+  # Related list to show opportunities included in this forecast
+  - type: related_list
+    name: forecast_opportunities
+    view_name: Related Opportunities
+    location: top_navigation
+    data: opportunity
+    limit: 25
+    fields:
+      - name
+      - stage
+      - amount
+      - probability
+      - close_date

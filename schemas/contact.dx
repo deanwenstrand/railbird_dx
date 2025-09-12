@@ -43,28 +43,37 @@ fields:
     type: string
     required: false
     length: 50
+    search:
+      enabled: true
+      weight: A
 
   - name: last_name
     view_name: Last Name
     type: string
     required: false
     length: 50
+    search:
+      enabled: true
+      weight: A
 
   - name: email
     view_name: Email Address
     type: email
     required: true
     length: 150
+    search:
+      enabled: true
+      weight: B
 
   - name: phone
     view_name: Phone Number
-    type: string
+    type: phone
     required: false
     length: 50
 
   - name: mobile_phone
     view_name: Mobile Phone
-    type: string
+    type: phone
     required: false
     length: 50
 
@@ -76,19 +85,36 @@ fields:
 
   - name: department
     view_name: Department
-    type: string
+    type: picklist.excl
     required: false
-    length: 100
+    values:
+      - sales
+      - marketing
+      - engineering
+      - product
+      - operations
+      - finance
+      - hr
+      - legal
+      - customer_success
+      - other
 
   - name: company_name
     view_name: Company Name
     type: string
     required: false
     length: 200
+    search:
+      enabled: true
+      weight: B
 
   - name: account_id
     view_name: Account
-    type: string
+    type: lookup
+    table: account
+    display_field: name
+    search_fields: [name, company_type, industry]
+    placeholder: "Search accounts..."
     required: false
     foreign_key:
       table: account
@@ -118,9 +144,18 @@ fields:
 
   - name: country
     view_name: Country
-    type: string
+    type: picklist.excl
     required: false
-    length: 100
+    values:
+      - united_states
+      - canada
+      - united_kingdom
+      - germany
+      - france
+      - australia
+      - japan
+      - other
+    default: united_states
 
   - name: preferred_contact_method
     view_name: Preferred Contact Method
@@ -130,6 +165,7 @@ fields:
       - email
       - phone
       - sms
+      - linkedin
     default: email
 
   - name: status
@@ -139,13 +175,37 @@ fields:
     values:
       - active
       - inactive
+      - unsubscribed
+      - bounced
     default: active
+
+  - name: lead_score
+    view_name: Lead Score
+    type: number
+    required: false
+    validation:
+      min: 0
+      max: 100
+    default: 0
+
+  - name: last_activity_date
+    view_name: Last Activity
+    type: date
+    required: false
 
   - name: assigned_to
     view_name: Assigned To
-    type: string
+    type: lookup
+    table: user
+    display_field: name
+    search_fields: [name, email, title]
+    placeholder: "Search users..."
     required: false
-    length: 100
+    foreign_key:
+      table: user
+      column: id
+      kind: lookup
+      on_delete: nullify
 
   - name: notes
     view_name: Notes

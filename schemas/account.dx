@@ -39,6 +39,9 @@ fields:
   validation:
     min_length: 2
   length: 200
+  search:
+    enabled: true
+    weight: A
 - name: account_type
   view_name: Account Type
   type: picklist.excl
@@ -78,6 +81,9 @@ fields:
   type: string
   required: false
   length: 200
+  search:
+    enabled: true
+    weight: C
 - name: billing_address
   view_name: Billing Address
   type: textarea
@@ -117,11 +123,24 @@ fields:
   view_name: Monthly Contract Value
   type: number
   required: false
+- name: hotness
+  view_name: Hotness
+  type: picklist.excl
+  required: false
+  values:
+  - cold
+  - warm
+  - hot
+  - burning
+  default: warm
 - name: account_manager
   view_name: Account Manager
   type: string
   required: false
   length: 100
+  search:
+    enabled: true
+    weight: B
 - name: notes
   view_name: Account Notes
   type: textarea

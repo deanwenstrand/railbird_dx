@@ -310,16 +310,18 @@ components:
     name: basic_info
     view_name: Contact Information
     location: main  # main, sidebar, footer, top_navigation
-    layout: two_column  # one_column, two_column
+    layout: two_column  # single_column, two_column, flex-wrap
     fields:
-      - first_name
+      - first_name           # Auto-flows to columns
       - last_name
       - name: email
+        column: 1            # Force to left column
         style_override:
           color: "#0070d2"
           font_weight: bold
-      - phone
-      - title
+      - name: phone
+        column: 2            # Force to right column
+      - title                # Auto-flows
 
   - type: related_list
     name: activities
@@ -339,6 +341,38 @@ components:
 - `field_section`: Display object fields
 - `related_list`: Display related records
 - `custom_component`: Custom React component
+
+### Field Section Layouts
+
+Field sections support different layout types:
+
+- **`single_column`**: All fields stack vertically
+- **`two_column`**: Fields flow left-to-right, wrapping to next row
+- **`flex-wrap`**: Fields flow horizontally and wrap (ideal for action buttons)
+
+### Column Placement (two_column only)
+
+Control exactly which fields go in which column:
+
+```yaml
+layout: two_column
+fields:
+  - name: first_name
+    column: 1              # Left column
+  - name: last_name
+    column: 2              # Right column
+  - phone                  # Auto-flows (left column)
+  - email                  # Auto-flows (right column)
+  - name: send_email
+    type: action
+    column: 2              # Action button in right column
+```
+
+**How it works:**
+1. Fields with `column: 1` render first in left column
+2. Fields with `column: 2` render first in right column  
+3. Fields without `column` auto-flow left-right-left-right
+4. Works with any field type: regular fields, lookups, actions
 
 ## Automations
 

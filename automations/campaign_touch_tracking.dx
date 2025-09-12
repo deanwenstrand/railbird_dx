@@ -16,10 +16,10 @@ actions:
       message: "[CAMPAIGN-TOUCH] Processing form submission: form={{new_values.form_name}} referrer={{new_values.referrer_url}} contact={{new_values.relation_id}}"
       level: info
 
-  # Campaign attribution with conditional logic
+  # Campaign attribution with enhanced conditional logic
   - type: conditional
     conditions:
-      # If campaign_id exists in form_data, use it directly
+      # Priority 1: Explicit campaign_id in form_data
       - if:
           field: "{{new_values.form_data}}"
           operator: contains
@@ -33,10 +33,75 @@ actions:
               event_id: "{{new_values.event_id}}"
           - type: log
             config:
-              message: "[CAMPAIGN-TOUCH] Touch created with explicit campaign_id"
+              message: "[CAMPAIGN-TOUCH] Touch created with explicit campaign_id: {{new_values.form_data.campaign_id}}"
               level: info
 
-      # Elif referrer contains google, use organic search campaign
+      # Priority 2: Social media referrers
+      - elif:
+          field: "{{new_values.referrer_url}}"
+          operator: contains
+          value: "facebook.com"
+        then:
+          - type: create_record
+            table: "touch"
+            data:
+              campaign_id: "000shvfsk0rmtad2gf0aee154p"  # Use referral campaign for social media
+              contact_id: "{{new_values.relation_id}}"
+              event_id: "{{new_values.event_id}}"
+          - type: log
+            config:
+              message: "[CAMPAIGN-TOUCH] Touch created for Facebook referral"
+              level: info
+
+      - elif:
+          field: "{{new_values.referrer_url}}"
+          operator: contains
+          value: "linkedin.com"
+        then:
+          - type: create_record
+            table: "touch"
+            data:
+              campaign_id: "000shvfsk0rmtad2gf0aee154p"  # Use referral campaign for social media
+              contact_id: "{{new_values.relation_id}}"
+              event_id: "{{new_values.event_id}}"
+          - type: log
+            config:
+              message: "[CAMPAIGN-TOUCH] Touch created for LinkedIn referral"
+              level: info
+
+      - elif:
+          field: "{{new_values.referrer_url}}"
+          operator: contains
+          value: "twitter.com"
+        then:
+          - type: create_record
+            table: "touch"
+            data:
+              campaign_id: "000shvfsk0rmtad2gf0aee154p"  # Use referral campaign for social media
+              contact_id: "{{new_values.relation_id}}"
+              event_id: "{{new_values.event_id}}"
+          - type: log
+            config:
+              message: "[CAMPAIGN-TOUCH] Touch created for Twitter referral"
+              level: info
+
+      - elif:
+          field: "{{new_values.referrer_url}}"
+          operator: contains
+          value: "youtube.com"
+        then:
+          - type: create_record
+            table: "touch"
+            data:
+              campaign_id: "000shvfsk0rmtad2gf0aee154p"  # Use referral campaign for social media
+              contact_id: "{{new_values.relation_id}}"
+              event_id: "{{new_values.event_id}}"
+          - type: log
+            config:
+              message: "[CAMPAIGN-TOUCH] Touch created for YouTube referral"
+              level: info
+
+      # Priority 3: Search engines (improved detection)
       - elif:
           field: "{{new_values.referrer_url}}"
           operator: contains
@@ -45,15 +110,63 @@ actions:
           - type: create_record
             table: "touch"
             data:
-              campaign_id: "000shvfsk0mhgrt8fbr8epqxmt"
+              campaign_id: "000shvfsk0mhgrt8fbr8epqxmt"  # Organic search campaign
               contact_id: "{{new_values.relation_id}}"
               event_id: "{{new_values.event_id}}"
           - type: log
             config:
-              message: "[CAMPAIGN-TOUCH] Touch created for organic search: referrer={{new_values.referrer_url}}"
+              message: "[CAMPAIGN-TOUCH] Touch created for Google organic search: {{new_values.referrer_url}}"
               level: info
 
-      # Elif has referrer (but not google), use referral traffic campaign
+      - elif:
+          field: "{{new_values.referrer_url}}"
+          operator: contains
+          value: "bing.com"
+        then:
+          - type: create_record
+            table: "touch"
+            data:
+              campaign_id: "000shvfsk0mhgrt8fbr8epqxmt"  # Organic search campaign (same as Google for now)
+              contact_id: "{{new_values.relation_id}}"
+              event_id: "{{new_values.event_id}}"
+          - type: log
+            config:
+              message: "[CAMPAIGN-TOUCH] Touch created for Bing search: {{new_values.referrer_url}}"
+              level: info
+
+      - elif:
+          field: "{{new_values.referrer_url}}"
+          operator: contains
+          value: "yahoo.com"
+        then:
+          - type: create_record
+            table: "touch"
+            data:
+              campaign_id: "000shvfsk0mhgrt8fbr8epqxmt"  # Organic search campaign (same as Google for now)
+              contact_id: "{{new_values.relation_id}}"
+              event_id: "{{new_values.event_id}}"
+          - type: log
+            config:
+              message: "[CAMPAIGN-TOUCH] Touch created for Yahoo search: {{new_values.referrer_url}}"
+              level: info
+
+      - elif:
+          field: "{{new_values.referrer_url}}"
+          operator: contains
+          value: "duckduckgo.com"
+        then:
+          - type: create_record
+            table: "touch"
+            data:
+              campaign_id: "000shvfsk0mhgrt8fbr8epqxmt"  # Organic search campaign (same as Google for now)
+              contact_id: "{{new_values.relation_id}}"
+              event_id: "{{new_values.event_id}}"
+          - type: log
+            config:
+              message: "[CAMPAIGN-TOUCH] Touch created for DuckDuckGo search: {{new_values.referrer_url}}"
+              level: info
+
+      # Priority 4: Other referrers (catch-all for external sites)
       - elif:
           field: "{{new_values.referrer_url}}"
           operator: is_not_null
@@ -61,23 +174,23 @@ actions:
           - type: create_record
             table: "touch"
             data:
-              campaign_id: "000shvfsk0rmtad2gf0aee154p"
+              campaign_id: "000shvfsk0rmtad2gf0aee154p"  # General referral traffic campaign
               contact_id: "{{new_values.relation_id}}"
               event_id: "{{new_values.event_id}}"
           - type: log
             config:
-              message: "[CAMPAIGN-TOUCH] Touch created for referral traffic: referrer={{new_values.referrer_url}}"
+              message: "[CAMPAIGN-TOUCH] Touch created for general referral traffic: {{new_values.referrer_url}}"
               level: info
 
-      # Else (no referrer), use direct traffic campaign
+      # Priority 5: Direct traffic (no referrer)
       - else:
           - type: create_record
             table: "touch"
             data:
-              campaign_id: "000shvfsk0v7bc16nx3cdhsfsu"
+              campaign_id: "000shvfsk0v7bc16nx3cdhsfsu"  # Direct traffic campaign
               contact_id: "{{new_values.relation_id}}"
               event_id: "{{new_values.event_id}}"
           - type: log
             config:
-              message: "[CAMPAIGN-TOUCH] Touch created for direct traffic"
+              message: "[CAMPAIGN-TOUCH] Touch created for direct traffic (no referrer)"
               level: info

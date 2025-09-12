@@ -47,7 +47,6 @@ fields:
   - name: timestamp
     type: datetime
     required: true
-    default: "CURRENT_TIMESTAMP"
     description: "When the change occurred"
 
   - name: user_id

@@ -1,0 +1,40 @@
+type: report
+name: accounts_hotness_tracker
+title: Account Hotness Tracker 🔥
+description: "Fun report showing accounts by their hotness level - track which accounts are burning hot!"
+source: account
+
+fields:
+  - company_name
+  - hotness
+  - monthly_value
+  - account_type
+  - industry
+  - account_manager
+
+options:
+  pagination: true
+  page_size: 25
+  sortable: true
+  filterable: true
+
+filters:
+  - field: hotness
+    type: string
+    operator: equals
+    label: Hotness Level
+    
+  - field: account_type
+    type: string
+    operator: equals
+    label: Account Type
+    
+  - field: industry
+    type: string
+    operator: equals
+    label: Industry
+    
+  - field: monthly_value
+    type: number
+    operator: greater_than
+    label: Min Monthly Value

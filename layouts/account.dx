@@ -19,7 +19,96 @@ components:
       - account_type
       - industry
       - status
-      - account_manager
+      - hotness
+      - name: account_manager
+        type: lookup
+        target_object: user
+        lookup_config:
+          display_field: name
+          secondary_fields: [email, department]
+          placeholder: "Search users..."
+          min_chars: 2
+          debounce_ms: 200
+
+  - type: react_component
+    name: hotness_meter
+    view_name: Account Temperature 🌡️
+    location: main
+    description: Visual representation of account hotness level
+    react: |
+      const hotness = account.hotness || 'warm';
+      
+      const hotnessConfig = {
+        cold: {
+          gif: 'https://media.giphy.com/media/3o7TKtnuHOHHUjR38Y/giphy.gif',
+          color: '#87CEEB',
+          emoji: '🥶',
+          message: 'Brrr! This account needs some warming up!'
+        },
+        warm: {
+          gif: 'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif',
+          color: '#FFD700',
+          emoji: '😊',
+          message: 'Nice and cozy! Keep nurturing this relationship.'
+        },
+        hot: {
+          gif: 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif',
+          color: '#FF6347',
+          emoji: '🔥',
+          message: 'Things are heating up! Strike while the iron is hot!'
+        },
+        burning: {
+          gif: 'https://media.giphy.com/media/5nsiFjdgylfK3csZ5T/giphy.gif',
+          color: '#DC143C',
+          emoji: '🔥💯',
+          message: 'RED HOT! This account is ready to close!'
+        }
+      };
+      
+      const config = hotnessConfig[hotness];
+      
+      return (
+        <div style={{ 
+          padding: '20px', 
+          background: `linear-gradient(135deg, ${config.color}20, ${config.color}10)`,
+          borderRadius: '12px', 
+          border: `2px solid ${config.color}40`,
+          textAlign: 'center'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
+            <div style={{ flex: '0 0 150px' }}>
+              <img 
+                src={config.gif} 
+                alt={`${hotness} account`}
+                style={{ 
+                  width: '150px', 
+                  height: '150px', 
+                  borderRadius: '8px',
+                  objectFit: 'cover'
+                }}
+              />
+            </div>
+            <div style={{ flex: '1', textAlign: 'left' }}>
+              <h3 style={{ 
+                margin: '0 0 10px 0', 
+                color: config.color.replace('20', ''), 
+                fontSize: '24px',
+                fontWeight: 'bold'
+              }}>
+                {config.emoji} {hotness.toUpperCase()} Account
+              </h3>
+              <p style={{ 
+                margin: 0, 
+                fontSize: '16px', 
+                color: '#495057',
+                fontStyle: 'italic'
+              }}>
+                {config.message}
+              </p>
+            </div>
+          </div>
+        </div>
+      )
 
   - type: react_component
     name: original_contact_info

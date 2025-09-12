@@ -48,6 +48,9 @@ fields:
     required: true
     unique: true
     length: 200
+    search:
+      enabled: true
+      weight: A
     code: |
       # Generate human-readable campaign name from attributes
       parts = []
@@ -145,6 +148,9 @@ fields:
     required: false
     length: 100
     description: "The creative, test cell, or split variant within the campaign"
+    search:
+      enabled: true
+      weight: B
 
   - name: budget
     view_name: Budget
@@ -196,6 +202,12 @@ fields:
   - name: deleted_at
     view_name: Deleted At
     type: datetime
+    required: false
+    system_managed: true
+
+  - name: search_vector
+    view_name: Search Vector
+    type: string
     required: false
     system_managed: true
 
