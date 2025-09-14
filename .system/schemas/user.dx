@@ -1,5 +1,5 @@
 type: schema
-object: user
+object: users
 view_name: Users
 description: System user account
 deletion_mode: soft
@@ -52,9 +52,19 @@ fields:
     table: profile
     column: id
 
-- name: region
-  type: string
+- name: territory_id
+  view_name: Territory
+  type: lookup
+  table: territory
+  display_field: name
+  search_fields: [name, code]
+  placeholder: "Search territories..."
   required: false
+  foreign_key:
+    table: territory
+    column: id
+    kind: lookup
+    on_delete: nullify
 
 - name: department
   type: string
@@ -81,6 +91,19 @@ fields:
   search:
     enabled: true
     weight: C
+
+- name: manager_id
+  type: lookup
+  table: users
+  display_field: name
+  search_fields: [name, email]
+  placeholder: "Search managers..."
+  required: false
+  foreign_key:
+    table: users
+    column: id
+    kind: lookup
+    on_delete: nullify
 
 - name: password_hash
   type: string

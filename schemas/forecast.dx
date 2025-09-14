@@ -1,7 +1,7 @@
 type: schema
 object: forecast
 view_name: Forecasts
-description: Sales forecasts for tracking revenue predictions and quota attainment
+description: Sales forecast snapshots - immutable records of what someone predicted for a specific period
 deletion_mode: soft
 endpoints:
   - GET
@@ -10,21 +10,20 @@ endpoints:
   - PUT /{id}
   - PATCH /{id}
   - DELETE /{id}
-add_to_top_nav: true
-add_to_global_nav: true
+add_to_top_nav: false
 search:
   enabled: false
 default_list_view:
   fields:
-    - forecast_name
-    - forecast_period
-    - territory
-    - quota_amount
-    - committed_amount
+    - user_id
+    - forecast_date
+    - period_end_date
+    - commit_amount
+    - best_guess_amount
+    - upside_amount
     - pipeline_amount
-    - forecast_category
     - created_at
-  sort_by: forecast_period
+  sort_by: forecast_date
   sort_order: desc
   page_size: 25
 fields:
@@ -35,110 +34,68 @@ fields:
     primary_key: true
     system_managed: true
 
-  - name: forecast_name
-    view_name: Forecast Name
-    type: string
-    required: true
-    length: 200
+  - name: user_id
+    view_name: User
+    type: lookup
+    table: users
+    display_field: name
+    search_fields: [name, email]
+    placeholder: "Search users..."
+    required: false
+    foreign_key:
+      table: users
+      column: id
+      kind: lookup
+      on_delete: nullify
 
-  - name: forecast_period
-    view_name: Forecast Period
+  - name: forecast_date
+    view_name: Forecast Date
     type: date
     required: true
 
-  - name: territory
-    view_name: Territory
-    type: string
-    required: false
-    length: 100
-
-  - name: quota_amount
-    view_name: Quota Amount
-    type: number
-    required: false
-
-  - name: committed_amount
-    view_name: Committed Amount
-    type: number
-    required: false
-
-  - name: best_case_amount
-    view_name: Best Case Amount
-    type: number
-    required: false
+  - name: period_end_date
+    view_name: Period End Date
+    type: date
+    required: true
 
   - name: pipeline_amount
     view_name: Pipeline Amount
     type: number
     required: false
+    validation:
+      min: 0
 
-  - name: forecast_category
-    view_name: Forecast Category
-    type: picklist.excl
-    required: true
-    values:
-      - Pipeline
-      - Best_Case
-      - Commit
-      - Closed
-    default: Pipeline
-
-  - name: opportunity_id
-    view_name: Opportunity
-    type: string
-    required: true
-    foreign_key:
-      table: opportunity
-      column: id
-      kind: lookup
-      on_delete: cascade
-
-  - name: owner_name
-    view_name: Owner
-    type: string
+  - name: commit_amount
+    view_name: Commit Amount
+    type: number
     required: false
-    length: 100
+    validation:
+      min: 0
+
+  - name: best_guess_amount
+    view_name: Best Guess Amount
+    type: number
+    required: false
+    validation:
+      min: 0
+
+  - name: upside_amount
+    view_name: Upside Amount
+    type: number
+    required: false
+    validation:
+      min: 0
 
   - name: notes
     view_name: Notes
     type: textarea
     required: false
 
-  - name: confidence_level
-    view_name: Confidence Level
-    type: number
+  - name: submitted
+    view_name: Submitted
+    type: boolean
     required: false
-    min: 0
-    max: 100
-    default: 50
-
-  - name: forecast_status
-    view_name: Status
-    type: picklist.excl
-    required: true
-    values:
-      - Draft
-      - Submitted
-      - Under_Review
-      - Approved
-      - Rejected
-    default: Draft
-
-  - name: submit_date
-    view_name: Submit Date
-    type: date
-    required: false
-
-  - name: approval_date
-    view_name: Approval Date
-    type: date
-    required: false
-
-  - name: approved_by
-    view_name: Approved By
-    type: string
-    required: false
-    length: 100
+    default: false
 
   # System-managed audit fields
   - name: created_at

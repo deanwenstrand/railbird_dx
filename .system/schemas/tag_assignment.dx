@@ -54,7 +54,7 @@ fields:
     type: string
     required: false
     foreign_key:
-      table: user
+      table: users
       column: id
 
   - name: applied_at

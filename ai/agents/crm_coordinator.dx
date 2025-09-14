@@ -89,8 +89,8 @@ tool_sources:
 context_formatting:
   conversation_history:
     max_messages: 4
-    user_message_chars: 200
-    assistant_message_chars: 100
+    user_message_chars: 500
+    assistant_message_chars: 300
   known_entities:
     max_contacts: 3
     max_accounts: 3

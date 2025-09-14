@@ -50,7 +50,7 @@ fields:
   type: string
   required: false
   foreign_key:
-    table: user
+    table: users
     column: id
 
 # External Contact (FK) or External Party (string)

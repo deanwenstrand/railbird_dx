@@ -92,6 +92,13 @@ fields:
   view_name: Shipping Address
   type: textarea
   required: false
+
+- name: state
+  view_name: State
+  type: string
+  required: false
+  length: 2
+  description: "Two-letter state code for routing purposes"
 # Temporarily commented out to resolve circular FK issue
 # - name: primary_contact_id
 #   view_name: Primary Contact
@@ -133,14 +140,6 @@ fields:
   - hot
   - burning
   default: warm
-- name: account_manager
-  view_name: Account Manager
-  type: string
-  required: false
-  length: 100
-  search:
-    enabled: true
-    weight: B
 - name: notes
   view_name: Account Notes
   type: textarea
@@ -170,18 +169,46 @@ fields:
   system_managed: true
 
 # ABAC support fields
-- name: region
-  view_name: Region
-  type: string
+- name: territory_id
+  view_name: Territory
+  type: lookup
+  table: territory
+  display_field: name
+  search_fields: [name, code]
+  placeholder: "Search territories..."
   required: false
+  foreign_key:
+    table: territory
+    column: id
+    kind: lookup
+    on_delete: nullify
 
 - name: owner_id
   view_name: Owner
-  type: string
+  type: lookup
+  table: users
+  display_field: name
+  search_fields: [name, email, department]
+  placeholder: "Search users..."
   required: false
   foreign_key:
-    table: user
+    table: users
     column: id
+    kind: lookup
+    on_delete: nullify
+
+- name: manually_assigned
+  view_name: Manual Assignment Override
+  type: boolean
+  required: false
+  default: false
+
+- name: trigger_routing
+  view_name: Trigger Routing
+  type: boolean
+  required: false
+  default: false
+  description: "Set to true to manually trigger account routing automation"
 
 - name: search_vector
   view_name: Search Vector

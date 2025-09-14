@@ -40,13 +40,13 @@ components:
         column: 1
         lookup_config:
           display_field: company_name
-          secondary_fields: [website, account_manager]
+          secondary_fields: [website, owner_id]
           placeholder: "Search accounts..."
           min_chars: 2
           debounce_ms: 200
       - name: assigned_to
         type: lookup
-        target_object: user
+        target_object: users
         column: 2
         lookup_config:
           display_field: name

@@ -114,15 +114,6 @@ fields:
     type: string
     required: false
     length: 100
-  - name: forecast_id
-    view_name: Forecast
-    type: string
-    required: false
-    foreign_key:
-      table: forecast
-      column: id
-      kind: lookup
-      on_delete: nullify
   - name: created_date
     view_name: Created Date
     type: datetime

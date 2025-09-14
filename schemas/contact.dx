@@ -196,13 +196,13 @@ fields:
   - name: assigned_to
     view_name: Assigned To
     type: lookup
-    table: user
+    table: users
     display_field: name
     search_fields: [name, email, title]
     placeholder: "Search users..."
     required: false
     foreign_key:
-      table: user
+      table: users
       column: id
       kind: lookup
       on_delete: nullify

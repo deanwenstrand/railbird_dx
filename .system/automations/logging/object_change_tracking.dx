@@ -2,7 +2,6 @@ type: automation
 name: object_change_tracking
 description: "System automation that creates object-level audit log entries"
 enabled: true
-
 trigger:
   type: database_event
   "on": [record_created, record_updated]

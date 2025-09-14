@@ -1,54 +1,51 @@
 type: layout
 name: forecast
-add_to_global_nav: true
+add_to_global_nav: false
 weight: 350
-description: Layout for sales forecast management and tracking
+description: Layout for sales forecast snapshots - immutable prediction records
 
 components:
   - type: field_section
-    name: forecast_overview
-    view_name: Forecast Overview
+    name: forecast_identity
+    view_name: Forecast Identity
     location: main
+    layout: two_column
     fields:
-      - forecast_name
-      - forecast_period
-      - territory
-      - opportunity_id
-      - owner_name
-      - forecast_status
+      - name: user_id
+        column: 1
+      - name: forecast_date
+        column: 2
+      - name: period_end_date
+        column: 1
 
   - type: field_section
     name: forecast_amounts
     view_name: Forecast Amounts
     location: main
+    layout: two_column
     fields:
-      - quota_amount
-      - committed_amount
-      - best_case_amount
-      - pipeline_amount
-      - confidence_level
+      - name: pipeline_amount
+        column: 1
+      - name: commit_amount
+        column: 2
+      - name: best_guess_amount
+        column: 1
+      - name: upside_amount
+        column: 2
 
   - type: field_section
-    name: forecast_details
-    view_name: Additional Details
+    name: forecast_status
+    view_name: Status
     location: main
+    layout: two_column
     fields:
-      - forecast_category
-      - submit_date
-      - approval_date
-      - approved_by
-      - notes
+      - name: submitted
+        column: 1
 
-  # Related list to show opportunities included in this forecast
-  - type: related_list
-    name: forecast_opportunities
-    view_name: Related Opportunities
-    location: top_navigation
-    data: opportunity
-    limit: 25
+  - type: field_section
+    name: forecast_notes
+    view_name: Notes
+    location: main
+    layout: single_column
     fields:
-      - name
-      - stage
-      - amount
-      - probability
-      - close_date
+      - name: notes

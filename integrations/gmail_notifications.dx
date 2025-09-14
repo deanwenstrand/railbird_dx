@@ -7,7 +7,7 @@ connection:
   smtp_server: "smtp.gmail.com"
   smtp_port: 587
   use_tls: true
-
+#test
 auth:
   type: basic_auth
   username_env: "GMAIL_USERNAME"

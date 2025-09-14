@@ -7,27 +7,41 @@ description: the default account layout
 
 components:
 
-
-
   - type: field_section
     name: basic_info
     view_name: Account Information
     location: main
     layout: two_column
     fields:
-      - company_name
-      - account_type
-      - industry
-      - status
-      - hotness
-      - name: account_manager
+      - name: company_name
+        column: 1
+      - name: owner_id
         type: lookup
-        target_object: user
+        target_object: users
+        column: 2
         lookup_config:
           display_field: name
           secondary_fields: [email, department]
           placeholder: "Search users..."
           min_chars: 2
+          debounce_ms: 200
+      - name: account_type
+        column: 1
+      - name: industry
+        column: 2
+      - name: status
+        column: 1
+      - name: hotness
+        column: 2
+      - name: territory_id
+        type: lookup
+        target_object: territory
+        column: 1
+        lookup_config:
+          display_field: name
+          secondary_fields: [code, type]
+          placeholder: "Search territories..."
+          min_chars: 1
           debounce_ms: 200
 
   - type: react_component
