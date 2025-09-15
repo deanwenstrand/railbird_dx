@@ -21,4 +21,4 @@ action:
     title: "Website Contact Form"
     details: "Email: {{form_data.email}} | Phone: {{form_data.phone}} | Notes: {{form_data.notes}}"
     color: "good"
-    crm_link: "http://localhost:5173/contacts/{{new_contact.id}}"
+    crm_link: "https://meta.dilex.com/contacts/{{new_contact.id}}"

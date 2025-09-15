@@ -125,8 +125,8 @@ components:
                   <div className="font-medium">{recordDisplayName}</div>
                   <div className="text-stone-600">
                     {objectTypeDisplay} (ID: 
-                    <a 
-                      href={`http://localhost:5173/${object_type}/${recordData?.id || record_id}`}
+                    <a
+                      href={`/${object_type}/${recordData?.id || record_id}`}
                       className="text-blue-600 hover:text-blue-800 underline ml-1"
                       target="_blank"
                       rel="noopener noreferrer"
