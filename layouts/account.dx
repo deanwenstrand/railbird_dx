@@ -7,6 +7,34 @@ description: the default account layout
 
 components:
 
+  - type: related_list
+    name: contact_roles
+    view_name: Contact Roles
+    location: top_navigation
+    data: account_contact_role
+    limit: 10
+    fields:
+      - contact_id
+      - role
+      - is_primary
+      - start_date
+      - end_date
+      - created_at
+
+  - type: related_list
+    name: opportunities
+    view_name: Opportunities
+    location: top_navigation
+    data: account.opportunities
+    limit: 10
+    fields:
+      - name
+      - stage
+      - amount
+      - probability
+      - close_date
+      - created_at
+
   - type: field_section
     name: basic_info
     view_name: Account Information
@@ -31,8 +59,6 @@ components:
         column: 2
       - name: status
         column: 1
-      - name: hotness
-        column: 2
       - name: territory_id
         type: lookup
         target_object: territory
@@ -43,133 +69,12 @@ components:
           placeholder: "Search territories..."
           min_chars: 1
           debounce_ms: 200
+      - name: manually_assigned
+        column: 1
+      - name: trigger_routing
+        column: 2
 
-  - type: react_component
-    name: hotness_meter
-    view_name: Account Temperature 🌡️
-    location: main
-    description: Visual representation of account hotness level
-    react: |
-      const hotness = account.hotness || 'warm';
-      
-      const hotnessConfig = {
-        cold: {
-          gif: 'https://media.giphy.com/media/3o7TKtnuHOHHUjR38Y/giphy.gif',
-          color: '#87CEEB',
-          emoji: '🥶',
-          message: 'Brrr! This account needs some warming up!'
-        },
-        warm: {
-          gif: 'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif',
-          color: '#FFD700',
-          emoji: '😊',
-          message: 'Nice and cozy! Keep nurturing this relationship.'
-        },
-        hot: {
-          gif: 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif',
-          color: '#FF6347',
-          emoji: '🔥',
-          message: 'Things are heating up! Strike while the iron is hot!'
-        },
-        burning: {
-          gif: 'https://media.giphy.com/media/5nsiFjdgylfK3csZ5T/giphy.gif',
-          color: '#DC143C',
-          emoji: '🔥💯',
-          message: 'RED HOT! This account is ready to close!'
-        }
-      };
-      
-      const config = hotnessConfig[hotness];
-      
-      return (
-        <div style={{ 
-          padding: '20px', 
-          background: `linear-gradient(135deg, ${config.color}20, ${config.color}10)`,
-          borderRadius: '12px', 
-          border: `2px solid ${config.color}40`,
-          textAlign: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
-            <div style={{ flex: '0 0 150px' }}>
-              <img 
-                src={config.gif} 
-                alt={`${hotness} account`}
-                style={{ 
-                  width: '150px', 
-                  height: '150px', 
-                  borderRadius: '8px',
-                  objectFit: 'cover'
-                }}
-              />
-            </div>
-            <div style={{ flex: '1', textAlign: 'left' }}>
-              <h3 style={{ 
-                margin: '0 0 10px 0', 
-                color: config.color.replace('20', ''), 
-                fontSize: '24px',
-                fontWeight: 'bold'
-              }}>
-                {config.emoji} {hotness.toUpperCase()} Account
-              </h3>
-              <p style={{ 
-                margin: 0, 
-                fontSize: '16px', 
-                color: '#495057',
-                fontStyle: 'italic'
-              }}>
-                {config.message}
-              </p>
-            </div>
-          </div>
-        </div>
-      )
 
-  - type: react_component
-    name: original_contact_info
-    view_name: Original Contact
-    location: main
-    description: Contact information from the first person who engaged with this account
-    react: |
-      const originalContact = account.original_contact;
-      
-      if (!originalContact) {
-        return (
-          <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #e9ecef' }}>
-            <p style={{ margin: 0, color: '#6c757d', fontStyle: 'italic' }}>No original contact found</p>
-          </div>
-        );
-      }
-      
-      return (
-        <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #e9ecef' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontWeight: 'bold', color: '#495057', marginBottom: '4px' }}>
-                First Name
-              </label>
-              <span style={{ color: '#212529' }}>{originalContact.first_name || '-'}</span>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 'bold', color: '#495057', marginBottom: '4px' }}>
-                Last Name
-              </label>
-              <span style={{ color: '#212529' }}>{originalContact.last_name || '-'}</span>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 'bold', color: '#495057', marginBottom: '4px' }}>
-                Email
-              </label>
-              <span style={{ color: '#212529' }}>{originalContact.email || '-'}</span>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 'bold', color: '#495057', marginBottom: '4px' }}>
-                Phone
-              </label>
-              <span style={{ color: '#212529' }}>{originalContact.phone || '-'}</span>
-            </div>
-          </div>
-        </div>
-      )
 
   - type: field_section
     name: company_details
@@ -218,31 +123,6 @@ components:
     layout: single_column
     fields:
       - notes
-
-  - type: related_list
-    name: opportunities
-    view_name: Opportunities
-    location: footer
-    data: account.opportunities
-    fields:
-      - name
-      - stage
-      - amount
-      - close_date
-      - probability
-  
-  - type: related_list
-    name: contacts
-    view_name: All Contacts
-    location: main
-    data: account.contacts
-    fields:
-      - first_name
-      - last_name
-      - email
-      - phone
-      - status
-      - created_at
 
   - type: related_list
     name: account_domains

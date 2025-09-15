@@ -1,0 +1,191 @@
+type: test
+name: automation_account_routing
+description: Test account routing automation trigger logic and conditions
+
+scenarios:
+  - name: triggers_on_account_creation_with_routing_flag
+    description: Automation should trigger when account is created with trigger_routing=true
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/accounts"
+          body:
+            company_name: "Test Routing Company"
+            account_type: "prospect"
+            industry: "technology"
+            employee_count: 100
+            state: null
+            status: "active"
+            trigger_routing: true
+            manually_assigned: false
+          capture: account_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: account_routing
+            status: triggered
+          capture: trigger_event
+    then:
+      - expect: trigger_event.automation_id
+        operator: "=="
+        value: "account_routing"
+      - expect: trigger_event.status
+        operator: "=="
+        value: "triggered"
+
+  - name: skips_when_manually_assigned
+    description: Automation should not trigger when manually_assigned=true
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/accounts"
+          body:
+            company_name: "Manual Assignment Test"
+            account_type: "prospect"
+            industry: "technology"
+            trigger_routing: true
+            manually_assigned: true
+          capture: account_id
+      - delay_ms: 1000
+    then:
+      - expect_no_automation:
+          automation_id: account_routing
+          timeout_ms: 2000
+
+  - name: skips_when_routing_flag_false
+    description: Automation should not trigger when trigger_routing=false
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/accounts"
+          body:
+            company_name: "No Routing Test"
+            account_type: "prospect"
+            industry: "technology"
+            trigger_routing: false
+            manually_assigned: false
+          capture: account_id
+      - delay_ms: 1000
+    then:
+      - expect_no_automation:
+          automation_id: account_routing
+          timeout_ms: 2000
+
+  - name: triggers_on_account_update_with_routing_flag
+    description: Automation should trigger when account is updated with proper conditions
+    given:
+      - object: account
+        data:
+          company_name: "Update Test Company"
+          account_type: "prospect"
+          industry: "technology"
+          trigger_routing: false
+          manually_assigned: false
+        capture: account_id
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: PATCH
+          path: "/api/accounts/{{account_id}}"
+          body:
+            trigger_routing: true
+          capture: updated_account
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: account_routing
+            status: triggered
+          capture: trigger_event
+    then:
+      - expect: trigger_event.automation_id
+        operator: "=="
+        value: "account_routing"
+      - expect: trigger_event.status
+        operator: "=="
+        value: "triggered"
+
+  - name: routing_logic_west_territory
+    description: Test routing logic assigns West territory for western states
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/accounts"
+          body:
+            company_name: "West Coast Company"
+            account_type: "prospect"
+            industry: "technology"
+            employee_count: 100
+            state: "CA"
+            status: "active"
+            trigger_routing: true
+            manually_assigned: false
+          capture: account_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: account_routing
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/accounts/{{account_id}}"
+          capture: account
+    then:
+      - expect: completion_event.status
+        operator: "=="
+        value: "completed"
+      - expect: account.trigger_routing
+        operator: "=="
+        value: false
+
+  - name: routing_logic_enterprise_territory
+    description: Test routing logic assigns Enterprise territory for large companies
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/accounts"
+          body:
+            company_name: "Enterprise Corp"
+            account_type: "prospect"
+            industry: "technology"
+            employee_count: 10000
+            state: "NY"
+            status: "active"
+            trigger_routing: true
+            manually_assigned: false
+          capture: account_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: account_routing
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/accounts/{{account_id}}"
+          capture: account
+    then:
+      - expect: completion_event.status
+        operator: "=="
+        value: "completed"
+      - expect: account.trigger_routing
+        operator: "=="
+        value: false

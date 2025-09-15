@@ -130,16 +130,6 @@ fields:
   view_name: Monthly Contract Value
   type: number
   required: false
-- name: hotness
-  view_name: Hotness
-  type: picklist.excl
-  required: false
-  values:
-  - cold
-  - warm
-  - hot
-  - burning
-  default: warm
 - name: notes
   view_name: Account Notes
   type: textarea

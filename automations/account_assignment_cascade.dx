@@ -1,0 +1,72 @@
+type: automation
+name: account_assignment_cascade
+description: Cascade account owner changes to all related objects (opportunities, contacts)
+enabled: true
+
+trigger:
+  type: database_event
+  tables: [account]
+  "on": [record_updated]
+  conditions:
+    - field: owner_id
+      changed: true
+
+actions:
+  - type: python
+    code: |
+      from generated.models import Account, Opportunity, Contact
+      import logging
+
+      logger = logging.getLogger(__name__)
+
+      # Get the account from context
+      account_id = None
+      new_owner_id = None
+
+      if hasattr(context, 'trigger_data') and context.trigger_data:
+          account_id = context.trigger_data.get('id')
+          new_owner_id = context.trigger_data.get('owner_id')
+      elif hasattr(context, 'new_data') and context.new_data:
+          account_id = context.new_data.get('id')
+          new_owner_id = context.new_data.get('owner_id')
+
+      logger.info(f"[ASSIGNMENT_CASCADE] Processing account_id: {account_id}, new_owner_id: {new_owner_id}")
+
+      if not account_id:
+          logger.error("[ASSIGNMENT_CASCADE] No account_id available")
+          return {'success': False, 'error': 'No account_id available'}
+
+      # Track updates
+      opportunities_updated = 0
+      contacts_updated = 0
+
+      # Update all opportunities for this account
+      opportunities = db.query(Opportunity).filter(Opportunity.account_id == account_id).all()
+      for opp in opportunities:
+          if opp.owner_id != new_owner_id:
+              opp.owner_id = new_owner_id
+              opportunities_updated += 1
+
+      # Update all contacts for this account (if they don't have manual assignment)
+      contacts = db.query(Contact).filter(Contact.account_id == account_id).all()
+      for contact in contacts:
+          # Only update if contact doesn't have a manually assigned owner
+          # (we assume if assigned_to is different from account owner, it was manual)
+          if contact.assigned_to != new_owner_id:
+              contact.assigned_to = new_owner_id
+              contacts_updated += 1
+
+      # Commit all changes
+      total_updated = opportunities_updated + contacts_updated
+      if total_updated > 0:
+          db.commit()
+          logger.info(f"[ASSIGNMENT_CASCADE] Updated {opportunities_updated} opportunities and {contacts_updated} contacts for account {account_id}")
+
+      return {
+          'success': True,
+          'account_id': account_id,
+          'new_owner_id': new_owner_id,
+          'opportunities_updated': opportunities_updated,
+          'contacts_updated': contacts_updated,
+          'total_updated': total_updated
+      }

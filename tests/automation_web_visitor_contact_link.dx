@@ -1,0 +1,221 @@
+type: test
+name: automation_web_visitor_contact_link
+description: Test web visitor to contact linking automation for form submissions
+
+scenarios:
+  - name: creates_visitor_contact_link_on_form_submission
+    description: Should create web_visitor_contact link when form submission creates contact
+    given:
+      - object: contact
+        data:
+          first_name: "Web"
+          last_name: "Visitor"
+          email: "webvisitor@test.com"
+          company_name: "Web Test Corp"
+        capture: contact_id
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "website_contact_us"
+            visitor_id: "visitor_link_test_123"
+            session_id: "session_link_test_456"
+            relation_name: "contact"
+            relation_id: "{{contact_id}}"
+            referrer_url: "https://example.com/contact"
+            form_data:
+              name: "Web Visitor"
+              email: "webvisitor@test.com"
+              company: "Web Test Corp"
+              message: "Testing visitor linking"
+          capture: submission_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: web_visitor_contact_link
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/web_visitor_contacts?visitor_id=visitor_link_test_123&contact_id={{contact_id}}"
+          capture: visitor_links
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "web_visitor_contact_link"
+      - expect: visitor_links.data
+        operator: "has_length_gte"
+        value: 1
+
+  - name: handles_duplicate_submissions_idempotently
+    description: Should handle duplicate form submissions without creating duplicate links
+    given:
+      - object: contact
+        data:
+          first_name: "Duplicate"
+          last_name: "Test"
+          email: "duplicate@test.com"
+          company_name: "Duplicate Corp"
+        capture: contact_id
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "contact_capture_form"
+            visitor_id: "duplicate_visitor_789"
+            session_id: "duplicate_session_999"
+            relation_name: "contact"
+            relation_id: "{{contact_id}}"
+            form_data:
+              name: "Duplicate Test"
+              email: "duplicate@test.com"
+          capture: submission1_id
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "contact_capture_form"
+            visitor_id: "duplicate_visitor_789"
+            session_id: "duplicate_session_999"
+            relation_name: "contact"
+            relation_id: "{{contact_id}}"
+            form_data:
+              name: "Duplicate Test Again"
+              email: "duplicate@test.com"
+          capture: submission2_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: web_visitor_contact_link
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/web_visitor_contacts?visitor_id=duplicate_visitor_789&contact_id={{contact_id}}"
+          capture: visitor_links
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "web_visitor_contact_link"
+      - expect: visitor_links.data
+        operator: "has_length"
+        value: 1
+
+  - name: skips_non_contact_form_submissions
+    description: Should not trigger for form submissions not related to contacts
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "newsletter_signup"
+            visitor_id: "newsletter_visitor_111"
+            session_id: "newsletter_session_222"
+            relation_name: "lead"
+            relation_id: "some_lead_id"
+            form_data:
+              email: "newsletter@test.com"
+          capture: submission_id
+      - delay_ms: 2000
+    then:
+      - expect_no_automation:
+          automation_id: web_visitor_contact_link
+          timeout_ms: 3000
+
+  - name: requires_visitor_id_and_contact_id
+    description: Should not trigger when visitor_id or relation_id is missing
+    given:
+      - object: contact
+        data:
+          first_name: "Missing"
+          last_name: "Data"
+          email: "missing@test.com"
+          company_name: "Missing Corp"
+        capture: contact_id
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "website_contact_us"
+            session_id: "missing_data_session"
+            relation_name: "contact"
+            relation_id: "{{contact_id}}"
+            form_data:
+              name: "Missing Visitor ID"
+              email: "missing@test.com"
+          capture: submission_id
+      - delay_ms: 2000
+    then:
+      - expect_no_automation:
+          automation_id: web_visitor_contact_link
+          timeout_ms: 3000
+
+  - name: links_multiple_visitors_to_same_contact
+    description: Should create separate links for different visitors to same contact
+    given:
+      - object: contact
+        data:
+          first_name: "Popular"
+          last_name: "Contact"
+          email: "popular@test.com"
+          company_name: "Popular Corp"
+        capture: contact_id
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "demo_request"
+            visitor_id: "visitor_a_555"
+            session_id: "session_a_666"
+            relation_name: "contact"
+            relation_id: "{{contact_id}}"
+            form_data:
+              name: "Visitor A"
+              email: "popular@test.com"
+          capture: submission_a_id
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "demo_request"
+            visitor_id: "visitor_b_777"
+            session_id: "session_b_888"
+            relation_name: "contact"
+            relation_id: "{{contact_id}}"
+            form_data:
+              name: "Visitor B"
+              email: "popular@test.com"
+          capture: submission_b_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: web_visitor_contact_link
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/web_visitor_contacts?contact_id={{contact_id}}"
+          capture: all_visitor_links
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "web_visitor_contact_link"
+      - expect: all_visitor_links.data
+        operator: "has_length_gte"
+        value: 2

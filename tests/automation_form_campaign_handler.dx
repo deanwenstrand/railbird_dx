@@ -1,0 +1,124 @@
+type: test
+name: automation_form_campaign_handler
+description: Test form campaign handler automation for form submissions
+
+scenarios:
+  - name: triggers_on_website_contact_us_form
+    description: Should trigger when website_contact_us form is submitted
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "website_contact_us"
+            visitor_id: "test_visitor_123"
+            referrer_url: "https://example.com/landing"
+            form_data:
+              name: "Test User"
+              email: "test@example.com"
+              message: "Test form submission"
+          capture: submission_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: form_campaign_handler
+            status: triggered
+          capture: trigger_event
+    then:
+      - expect: trigger_event.automation_id
+        operator: "=="
+        value: "form_campaign_handler"
+      - expect: trigger_event.status
+        operator: "=="
+        value: "triggered"
+
+  - name: skips_other_form_types
+    description: Should not trigger for form submissions that are not website_contact_us
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "other_form"
+            visitor_id: "test_visitor_456"
+            form_data:
+              name: "Other User"
+              email: "other@example.com"
+          capture: submission_id
+      - delay_ms: 1000
+    then:
+      - expect_no_automation:
+          automation_id: form_campaign_handler
+          timeout_ms: 2000
+
+  - name: processes_form_submission_successfully
+    description: Should complete processing of website contact us form
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "website_contact_us"
+            visitor_id: "test_visitor_789"
+            referrer_url: "https://example.com/product"
+            form_data:
+              name: "Complete Test"
+              email: "complete@example.com"
+              message: "Complete test submission"
+          capture: submission_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 10000
+          interval_ms: 500
+          match:
+            automation_id: form_campaign_handler
+            status: completed
+          capture: completion_event
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "form_campaign_handler"
+      - expect: completion_event.status
+        operator: "=="
+        value: "completed"
+
+  - name: logs_processing_message
+    description: Should log form submission processing message
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "website_contact_us"
+            visitor_id: "test_visitor_log"
+            referrer_url: "https://example.com/test"
+            form_data:
+              name: "Log Test"
+              email: "log@example.com"
+          capture: submission_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: form_campaign_handler
+            step_type: action
+            action_type: log
+          capture: log_event
+    then:
+      - expect: log_event.automation_id
+        operator: "=="
+        value: "form_campaign_handler"
+      - expect: log_event.action_type
+        operator: "=="
+        value: "log"

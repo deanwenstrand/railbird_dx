@@ -1,0 +1,143 @@
+type: test
+name: automation_object_change_tracking
+description: Test object change tracking automation for audit logging
+
+scenarios:
+  - name: logs_account_creation
+    description: Should create change log entry when account is created
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/accounts"
+          body:
+            company_name: "Change Tracking Test"
+            account_type: "prospect"
+            industry: "technology"
+            status: "active"
+          capture: account_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: object_change_tracking
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/object_logs?table_name=account&record_id={{account_id}}"
+          capture: change_logs
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "object_change_tracking"
+      - expect: change_logs.data
+        operator: "has_length_gte"
+        value: 1
+
+  - name: logs_account_update
+    description: Should create change log entry when account is updated
+    given:
+      - object: account
+        data:
+          company_name: "Update Tracking Test"
+          account_type: "prospect"
+          industry: "technology"
+          status: "active"
+        capture: account_id
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: PATCH
+          path: "/api/accounts/{{account_id}}"
+          body:
+            status: "inactive"
+          capture: updated_account
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: object_change_tracking
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/object_logs?table_name=account&record_id={{account_id}}"
+          capture: change_logs
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "object_change_tracking"
+      - expect: change_logs.data
+        operator: "has_length_gte"
+        value: 1
+
+  - name: excludes_self_referential_changes
+    description: Should not track changes to object_change_log table (prevent infinite loops)
+    given:
+      - clear_automation_logs: []
+    when:
+      # This would be an internal operation that creates change logs
+      - call:
+          method: POST
+          path: "/api/accounts"
+          body:
+            company_name: "Self Reference Test"
+            account_type: "prospect"
+            industry: "technology"
+          capture: account_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 3000
+          interval_ms: 250
+          match:
+            automation_id: object_change_tracking
+            status: completed
+          capture: completion_event
+      - delay_ms: 1000
+    then:
+      # Should complete successfully without creating infinite loop
+      - expect: completion_event.status
+        operator: "=="
+        value: "completed"
+      # No additional tracking events should be generated for the change log itself
+      - expect_no_automation:
+          automation_id: object_change_tracking
+          table_name: object_change_log
+          timeout_ms: 2000
+
+  - name: tracks_contact_changes
+    description: Should track changes to user tables like contacts
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/contacts"
+          body:
+            first_name: "Track"
+            last_name: "Test"
+            email: "track@test.com"
+          capture: contact_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: object_change_tracking
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/object_logs?table_name=contact&record_id={{contact_id}}"
+          capture: change_logs
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "object_change_tracking"
+      - expect: change_logs.data
+        operator: "has_length_gte"
+        value: 1

@@ -1,0 +1,220 @@
+type: test
+name: automation_contact_insert_link_or_create
+description: Test contact-to-account linking automation for business domains
+
+scenarios:
+  - name: links_contact_to_existing_account
+    description: Should link contact to existing account when domain exists
+    given:
+      - object: account
+        data:
+          company_name: "Existing Corp"
+          account_type: "customer"
+          industry: "technology"
+          status: "active"
+        capture: account_id
+      - object: account_domain
+        data:
+          account_id: "{{account_id}}"
+          full_domain: "existingcorp.com"
+          registrable_domain: "existingcorp.com"
+          scope: "email"
+          role: "primary"
+          shared_domain: false
+        capture: domain_id
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/contacts"
+          body:
+            first_name: "John"
+            last_name: "Existing"
+            email: "john@existingcorp.com"
+            company_name: "Existing Corp"
+          capture: contact_response
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: contact_insert_link_or_create
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/contacts/{{contact_response.id}}"
+          capture: linked_contact
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "contact_insert_link_or_create"
+      - expect: linked_contact.account_id
+        operator: "=="
+        value: "{{account_id}}"
+
+  - name: creates_new_account_for_business_domain
+    description: Should create new account when business domain doesn't exist
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/contacts"
+          body:
+            first_name: "Jane"
+            last_name: "NewCorp"
+            email: "jane@newcorp.com"
+            company_name: "New Corp Inc"
+          capture: contact_response
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: contact_insert_link_or_create
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/contacts/{{contact_response.id}}"
+          capture: linked_contact
+      - call:
+          method: GET
+          path: "/api/accounts?company_name=New Corp Inc"
+          capture: created_accounts
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "contact_insert_link_or_create"
+      - expect: linked_contact.account_id
+        operator: "is_not_null"
+      - expect: created_accounts.data
+        operator: "has_length_gte"
+        value: 1
+
+  - name: skips_shared_domains
+    description: Should not link contacts with shared email domains
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/contacts"
+          body:
+            first_name: "Gmail"
+            last_name: "User"
+            email: "user@gmail.com"
+            company_name: "Personal"
+          capture: contact_response
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: contact_insert_link_or_create
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/contacts/{{contact_response.id}}"
+          capture: unlinked_contact
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "contact_insert_link_or_create"
+      - expect: unlinked_contact.account_id
+        operator: "is_null"
+
+  - name: handles_missing_company_name
+    description: Should fail gracefully when company name is missing for business domain
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/contacts"
+          body:
+            first_name: "No"
+            last_name: "Company"
+            email: "nocompany@businessdomain.com"
+          capture: contact_response
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: contact_insert_link_or_create
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/contacts/{{contact_response.id}}"
+          capture: unlinked_contact
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "contact_insert_link_or_create"
+      - expect: unlinked_contact.account_id
+        operator: "is_null"
+
+  - name: assigns_contact_to_account_owner
+    description: Should assign contact to account owner when linking to existing account
+    given:
+      - object: user
+        data:
+          username: "account_owner"
+          email: "owner@test.com"
+          first_name: "Account"
+          last_name: "Owner"
+        capture: owner_id
+      - object: account
+        data:
+          company_name: "Owner Test Corp"
+          account_type: "customer"
+          industry: "technology"
+          status: "active"
+          owner_id: "{{owner_id}}"
+        capture: account_id
+      - object: account_domain
+        data:
+          account_id: "{{account_id}}"
+          full_domain: "ownertestcorp.com"
+          registrable_domain: "ownertestcorp.com"
+          scope: "email"
+          role: "primary"
+          shared_domain: false
+        capture: domain_id
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/contacts"
+          body:
+            first_name: "Assigned"
+            last_name: "Contact"
+            email: "assigned@ownertestcorp.com"
+            company_name: "Owner Test Corp"
+          capture: contact_response
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: contact_insert_link_or_create
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/contacts/{{contact_response.id}}"
+          capture: assigned_contact
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "contact_insert_link_or_create"
+      - expect: assigned_contact.account_id
+        operator: "=="
+        value: "{{account_id}}"
+      - expect: assigned_contact.assigned_to
+        operator: "=="
+        value: "{{owner_id}}"

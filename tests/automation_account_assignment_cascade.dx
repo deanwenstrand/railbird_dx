@@ -1,0 +1,212 @@
+type: test
+name: automation_account_assignment_cascade
+description: Test account assignment cascade automation for opportunities and contacts
+
+scenarios:
+  - name: cascades_to_opportunities_on_account_owner_change
+    description: Should update all opportunity owners when account owner changes
+    given:
+      - object: account
+        data:
+          company_name: "Cascade Test Corp"
+          account_type: "customer"
+          industry: "technology"
+          status: "active"
+          owner_id: "old_owner_123"
+        capture: account_id
+      - object: opportunity
+        data:
+          account_id: "{{account_id}}"
+          name: "Test Opportunity 1"
+          stage: "prospecting"
+          owner_id: "old_owner_123"
+        capture: opportunity1_id
+      - object: opportunity
+        data:
+          account_id: "{{account_id}}"
+          name: "Test Opportunity 2"
+          stage: "proposal"
+          owner_id: "old_owner_123"
+        capture: opportunity2_id
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: PATCH
+          path: "/api/accounts/{{account_id}}"
+          body:
+            owner_id: "new_owner_456"
+          capture: updated_account
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: account_assignment_cascade
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/opportunities/{{opportunity1_id}}"
+          capture: updated_opp1
+      - call:
+          method: GET
+          path: "/api/opportunities/{{opportunity2_id}}"
+          capture: updated_opp2
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "account_assignment_cascade"
+      - expect: updated_opp1.owner_id
+        operator: "=="
+        value: "new_owner_456"
+      - expect: updated_opp2.owner_id
+        operator: "=="
+        value: "new_owner_456"
+
+  - name: cascades_to_contacts_on_account_owner_change
+    description: Should update all contact assignments when account owner changes
+    given:
+      - object: account
+        data:
+          company_name: "Contact Cascade Corp"
+          account_type: "customer"
+          industry: "finance"
+          status: "active"
+          owner_id: "old_owner_789"
+        capture: account_id
+      - object: contact
+        data:
+          account_id: "{{account_id}}"
+          first_name: "John"
+          last_name: "Cascade"
+          email: "john@cascadecorp.com"
+          assigned_to: "old_owner_789"
+        capture: contact1_id
+      - object: contact
+        data:
+          account_id: "{{account_id}}"
+          first_name: "Jane"
+          last_name: "Cascade"
+          email: "jane@cascadecorp.com"
+          assigned_to: "old_owner_789"
+        capture: contact2_id
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: PATCH
+          path: "/api/accounts/{{account_id}}"
+          body:
+            owner_id: "new_owner_999"
+          capture: updated_account
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: account_assignment_cascade
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/contacts/{{contact1_id}}"
+          capture: updated_contact1
+      - call:
+          method: GET
+          path: "/api/contacts/{{contact2_id}}"
+          capture: updated_contact2
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "account_assignment_cascade"
+      - expect: updated_contact1.assigned_to
+        operator: "=="
+        value: "new_owner_999"
+      - expect: updated_contact2.assigned_to
+        operator: "=="
+        value: "new_owner_999"
+
+  - name: handles_mixed_opportunities_and_contacts
+    description: Should update both opportunities and contacts in single automation run
+    given:
+      - object: account
+        data:
+          company_name: "Mixed Objects Corp"
+          account_type: "customer"
+          industry: "healthcare"
+          status: "active"
+          owner_id: "mixed_owner_111"
+        capture: account_id
+      - object: opportunity
+        data:
+          account_id: "{{account_id}}"
+          name: "Mixed Test Opportunity"
+          stage: "negotiation"
+          owner_id: "mixed_owner_111"
+        capture: opportunity_id
+      - object: contact
+        data:
+          account_id: "{{account_id}}"
+          first_name: "Mixed"
+          last_name: "Test"
+          email: "mixed@mixedcorp.com"
+          assigned_to: "mixed_owner_111"
+        capture: contact_id
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: PATCH
+          path: "/api/accounts/{{account_id}}"
+          body:
+            owner_id: "mixed_owner_222"
+          capture: updated_account
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: account_assignment_cascade
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/opportunities/{{opportunity_id}}"
+          capture: updated_opportunity
+      - call:
+          method: GET
+          path: "/api/contacts/{{contact_id}}"
+          capture: updated_contact
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "account_assignment_cascade"
+      - expect: updated_opportunity.owner_id
+        operator: "=="
+        value: "mixed_owner_222"
+      - expect: updated_contact.assigned_to
+        operator: "=="
+        value: "mixed_owner_222"
+
+  - name: skips_when_owner_unchanged
+    description: Should not trigger when account owner is not changed
+    given:
+      - object: account
+        data:
+          company_name: "No Change Corp"
+          account_type: "prospect"
+          industry: "retail"
+          status: "active"
+          owner_id: "same_owner_333"
+        capture: account_id
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: PATCH
+          path: "/api/accounts/{{account_id}}"
+          body:
+            status: "inactive"
+          capture: updated_account
+      - delay_ms: 1000
+    then:
+      - expect_no_automation:
+          automation_id: account_assignment_cascade
+          timeout_ms: 2000

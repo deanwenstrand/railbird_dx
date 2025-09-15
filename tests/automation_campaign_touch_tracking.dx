@@ -1,0 +1,109 @@
+type: test
+name: automation_campaign_touch_tracking
+description: Test campaign touch tracking automation for form submissions
+
+scenarios:
+  - name: creates_touch_record_for_form_submission
+    description: Should create touch record when form submission occurs
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "contact_capture_form"
+            visitor_id: "touch_test_visitor_123"
+            referrer_url: "https://example.com/products"
+            form_data:
+              name: "Touch Test User"
+              email: "touch@test.com"
+              company: "Touch Test Corp"
+          capture: submission_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: campaign_touch_tracking
+            status: completed
+          capture: completion_event
+      - call:
+          method: GET
+          path: "/api/touches?form_submission_id={{submission_id}}"
+          capture: touches
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "campaign_touch_tracking"
+      - expect: touches.data
+        operator: "has_length_gte"
+        value: 1
+
+  - name: handles_campaign_context_correctly
+    description: Should properly handle campaign context in touch creation
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "newsletter_signup"
+            visitor_id: "campaign_visitor_456"
+            referrer_url: "https://example.com/campaign/summer2024"
+            utm_source: "google"
+            utm_medium: "cpc"
+            utm_campaign: "summer2024"
+            form_data:
+              email: "campaign@test.com"
+          capture: submission_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: campaign_touch_tracking
+            status: completed
+          capture: completion_event
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "campaign_touch_tracking"
+      - expect: completion_event.status
+        operator: "=="
+        value: "completed"
+
+  - name: processes_multiple_form_types
+    description: Should handle different form types appropriately
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "demo_request"
+            visitor_id: "demo_visitor_789"
+            referrer_url: "https://example.com/demo"
+            form_data:
+              name: "Demo Requester"
+              email: "demo@test.com"
+              company: "Demo Corp"
+              requested_demo_date: "2024-01-15"
+          capture: submission_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 5000
+          interval_ms: 250
+          match:
+            automation_id: campaign_touch_tracking
+            status: completed
+          capture: completion_event
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "campaign_touch_tracking"
+      - expect: completion_event.status
+        operator: "=="
+        value: "completed"

@@ -1,0 +1,127 @@
+type: test
+name: automation_contact_capture_email
+description: Test contact capture email automation for form submissions
+
+scenarios:
+  - name: sends_email_on_contact_form_submission
+    description: Should send notification email when contact form is submitted
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "contact_capture_form"
+            visitor_id: "email_test_visitor_123"
+            referrer_url: "https://example.com/contact"
+            form_data:
+              name: "Email Test User"
+              email: "emailtest@test.com"
+              company: "Email Test Corp"
+              message: "I'd like to learn more about your services"
+          capture: submission_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 10000
+          interval_ms: 500
+          match:
+            automation_id: contact_capture_email
+            status: completed
+          capture: completion_event
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "contact_capture_email"
+      - expect: completion_event.status
+        operator: "=="
+        value: "completed"
+
+  - name: handles_email_template_rendering
+    description: Should properly render email templates with form data
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "contact_capture_form"
+            visitor_id: "template_test_visitor_456"
+            referrer_url: "https://example.com/pricing"
+            form_data:
+              name: "Template Test"
+              email: "template@test.com"
+              company: "Template Corp"
+              phone: "+1-555-0123"
+              message: "Interested in enterprise pricing"
+          capture: submission_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 10000
+          interval_ms: 500
+          match:
+            automation_id: contact_capture_email
+            step_type: action
+            action_type: integration_call
+          capture: email_action_event
+    then:
+      - expect: email_action_event.automation_id
+        operator: "=="
+        value: "contact_capture_email"
+      - expect: email_action_event.action_type
+        operator: "=="
+        value: "integration_call"
+
+  - name: skips_non_contact_forms
+    description: Should not trigger for non-contact form submissions
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "newsletter_signup"
+            visitor_id: "skip_test_visitor_789"
+            form_data:
+              email: "newsletter@test.com"
+          capture: submission_id
+      - delay_ms: 2000
+    then:
+      - expect_no_automation:
+          automation_id: contact_capture_email
+          timeout_ms: 3000
+
+  - name: handles_email_delivery_errors_gracefully
+    description: Should handle email delivery failures without breaking
+    given:
+      - clear_automation_logs: []
+    when:
+      - call:
+          method: POST
+          path: "/api/form_submissions"
+          body:
+            form_name: "contact_capture_form"
+            visitor_id: "error_test_visitor_999"
+            form_data:
+              name: "Error Test"
+              email: "invalid-email-format"
+              company: "Error Corp"
+          capture: submission_id
+      - wait_until:
+          source: automation_log
+          timeout_ms: 10000
+          interval_ms: 500
+          match:
+            automation_id: contact_capture_email
+            status: completed
+          capture: completion_event
+    then:
+      - expect: completion_event.automation_id
+        operator: "=="
+        value: "contact_capture_email"
+      # Should complete even if email fails
+      - expect: completion_event.status
+        operator: "=="
+        value: "completed"

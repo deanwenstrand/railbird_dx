@@ -1,0 +1,111 @@
+type: test
+name: automation_validation
+description: Test that all automation files parse correctly and meet validation rules
+
+scenarios:
+  - name: all_automations_parse_successfully
+    description: All automation .dx files should parse without syntax errors
+    given: []
+    when:
+      - validate_automation_files:
+          directory: "meta_dx/automations"
+          recursive: true
+        capture: validation_results
+      - validate_automation_files:
+          directory: "meta_dx/.system/automations"
+          recursive: true
+        capture: system_validation_results
+    then:
+      - expect: validation_results.success
+        operator: "=="
+        value: true
+      - expect: system_validation_results.success
+        operator: "=="
+        value: true
+      - expect: validation_results.errors
+        operator: "=="
+        value: []
+      - expect: system_validation_results.errors
+        operator: "=="
+        value: []
+
+  - name: automation_handlers_generate_successfully
+    description: All automations should generate valid handler classes
+    given: []
+    when:
+      - generate_automation_handlers:
+          force_regenerate: true
+        capture: generation_results
+    then:
+      - expect: generation_results.success
+        operator: "=="
+        value: true
+      - expect: generation_results.errors
+        operator: "=="
+        value: []
+
+  - name: automation_registry_loads_all_handlers
+    description: Automation system should load all generated handlers
+    given: []
+    when:
+      - check_automation_registry: {}
+        capture: registry_status
+    then:
+      - expect: registry_status.handlers_loaded
+        operator: ">="
+        value: 10
+      - expect: registry_status.failed_handlers
+        operator: "=="
+        value: []
+
+  - name: no_deprecated_field_usage
+    description: No automations should use deprecated field names
+    given: []
+    when:
+      - check_automation_syntax:
+          deprecated_fields: ["events", "filter", "filters_and_conditions"]
+        capture: syntax_check
+    then:
+      - expect: syntax_check.deprecated_usage
+        operator: "=="
+        value: []
+
+  - name: required_yaml_quoting
+    description: Automations should properly quote YAML reserved words
+    given: []
+    when:
+      - check_automation_yaml_quoting:
+          required_quotes: ["on", "true", "false", "yes", "no"]
+        capture: quoting_check
+    then:
+      - expect: quoting_check.unquoted_reserved_words
+        operator: "=="
+        value: []
+
+  - name: trigger_logic_generation
+    description: All database_event triggers should generate proper matching logic
+    given: []
+    when:
+      - check_generated_trigger_logic: {}
+        capture: trigger_check
+    then:
+      - expect: trigger_check.invalid_logic
+        operator: "=="
+        value: []
+      - expect: trigger_check.missing_conditions
+        operator: "=="
+        value: []
+
+  - name: automation_dependencies_resolved
+    description: All automation dependencies should be resolvable
+    given: []
+    when:
+      - check_automation_dependencies: {}
+        capture: dependency_check
+    then:
+      - expect: dependency_check.unresolved_tables
+        operator: "=="
+        value: []
+      - expect: dependency_check.missing_fields
+        operator: "=="
+        value: []
