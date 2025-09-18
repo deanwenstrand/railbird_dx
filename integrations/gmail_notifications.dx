@@ -18,6 +18,7 @@ request_mapping:
   subject: "{{subject}}"
   body: "{{message}}"
   from_email: "{{env.GMAIL_USERNAME}}"
+  from_name: "Dilex"
   content_type: "text/plain"
 
 response_mapping:
