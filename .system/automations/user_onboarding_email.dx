@@ -3,6 +3,7 @@ name: user_onboarding_email
 description: "Send welcome email when a new user account is created"
 enabled: true
 
+
 trigger:
   type: database_event
   "on": record_created
@@ -21,4 +22,4 @@ action:
     recipient_email: "{{user.email}}"
     user_name: "{{user.name}}"
     user_email: "{{user.email}}"
-    login_url: "{{env.FRONTEND_URL}}/login"
+    login_url: "{{env.API_BASE_URL}}/login"
