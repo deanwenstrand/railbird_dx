@@ -8,6 +8,18 @@ search:
   enabled: true
   label: "Users"
 
+default_list_view:
+  fields:
+    - email
+    - name
+    - title
+    - department
+    - is_active
+    - created_at
+  sort_by: created_at
+  sort_order: desc
+  page_size: 25
+
 endpoints:
   - GET
   - POST
@@ -87,7 +99,6 @@ fields:
   required: false
   length: 200
   view_name: Company Name
-  default: "Playbook CRM"
   search:
     enabled: true
     weight: C

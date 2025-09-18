@@ -2,6 +2,7 @@ type: schema
 object: contact
 view_name: Contacts
 description: Contact records for people at customer accounts
+# Test change for git workflow verification
 deletion_mode: soft
 
 endpoints:

@@ -1,0 +1,24 @@
+type: automation
+name: user_onboarding_email
+description: "Send welcome email when a new user account is created"
+enabled: true
+
+trigger:
+  type: database_event
+  "on": record_created
+  tables: [users]
+  conditions:
+    - field: is_active
+      equals: true
+    - field: email
+      not_equals: null
+
+action:
+  type: integration_call
+  integration: gmail_notifications
+  template: user_welcome_email
+  data:
+    recipient_email: "{{user.email}}"
+    user_name: "{{user.name}}"
+    user_email: "{{user.email}}"
+    login_url: "{{env.FRONTEND_URL}}/login"

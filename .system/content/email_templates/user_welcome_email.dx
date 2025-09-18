@@ -1,0 +1,40 @@
+type: content
+name: user_welcome_email
+content_type: email_template
+description: "Welcome email for new user accounts"
+
+template:
+  subject: "Welcome to Dilex - Your Account is Ready!"
+  format: plain_text
+  body: |
+    Hi {{user_name}},
+
+    Welcome to Dilex! Your user account has been successfully created.
+
+    **Account Details:**
+    - Email: {{user_email}}
+    - Login URL: {{login_url}}
+
+    **Getting Started:**
+    1. Visit the login page using the link above
+    2. Use your email address to sign in
+    3. If you need to set or reset your password, use the "Forgot Password" link
+
+    **Need Help?**
+    If you have any questions or need assistance getting started, please reply to this email.
+
+    Welcome aboard!
+
+    Best regards,
+    The Dilex Team
+
+variables:
+  - name: user_name
+    type: string
+    required: true
+  - name: user_email
+    type: string
+    required: true
+  - name: login_url
+    type: string
+    required: true
