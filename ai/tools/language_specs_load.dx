@@ -1,0 +1,69 @@
+name: language_specs_load
+description: Load LexDX language specification documentation for .dx file types
+completion_behavior: continue_workflow
+ai:
+  effect: read
+  when_to_use: After identifying file type, load specs to understand syntax
+  examples:
+    - "Load schema specification"
+    - "Get layout syntax documentation"
+    - "Load automation spec to understand trigger types"
+  tags: [documentation, specs, code-editing]
+  priority: high
+
+input_schema:
+  type: object
+  properties:
+    file_type:
+      type: string
+      enum: [schema, layout, automation, integration, validation, form, report, endpoint]
+      description: Type of .dx file specification to load
+  required: [file_type]
+
+output_schema:
+  type: object
+  properties:
+    file_type:
+      type: string
+      description: Type of specification loaded
+    specifications:
+      type: array
+      items:
+        type: object
+        properties:
+          spec_file:
+            type: string
+            description: Name of spec file
+          content:
+            type: string
+            description: Content of spec file
+          exists:
+            type: boolean
+            description: Whether the spec file exists
+        required: [spec_file, exists]
+      description: List of specification files loaded
+    summary:
+      type: string
+      description: Summary of what was loaded
+    total_spec_files:
+      type: number
+      description: Number of spec files loaded
+  required: [file_type, specifications, total_spec_files, summary]
+
+agent_access: [crm_coordinator, admin, developer, lexdx_dev, unified_assistant]
+
+implementation:
+  type: dsl_logic
+  logic:
+    steps:
+      - action: language_specs_load
+        file_type: "{input.file_type}"
+        store_as: specs_data
+
+      - action: return_final_answer
+        answer: "Loaded {specs_data.total_spec_files} specification files for {input.file_type}"
+        response_data:
+          file_type: "{input.file_type}"
+          specifications: "{specs_data.specifications}"
+          summary: "{specs_data.summary}"
+          total_spec_files: "{specs_data.total_spec_files}"

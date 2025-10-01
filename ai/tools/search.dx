@@ -1,26 +1,443 @@
 type: action
-name: search_semantic
-description: "Search contacts, accounts, and records using natural language queries with semantic understanding"
+name: search
+description: "Find records using natural language with intelligent filtering"
 version: 1.0
-agent_access: ["crm_coordinator"]
+agent_access: ["crm_coordinator", "unified_assistant"]
+completion_behavior: continue_workflow
 
-# LLM Integration Metadata
+# LLM Integration
 ai:
-  when_to_use: "When user wants to find people, companies, or records using natural language descriptions, names, or context clues"
+  when_to_use: "When user wants to FIND specific records to view or act on. NOT for counting or analytics - use data_analytics for 'how many' questions."
   examples:
-    - "find John Smith at Acme Corp"
-    - "show me tech startup contacts in California"
-    - "search for contacts who work at consulting companies"
-    - "find people with email addresses at google.com"
+    - "find John Smith at Google"
+    - "tech contacts who visited the website last month"
+    - "opportunities over $50k with no activity this week"
+    - "contacts I haven't emailed in 30 days"
+    - "hot leads from California"
+    - "accounts with revenue over $100k"
+  wrong_examples:
+    - "how many contacts created last month" # Use data_analytics instead
+    - "count deans" # Use data_analytics instead
   effect: read
   priority: high
-  tags: ["search", "semantic", "contacts", "accounts", "nlp"]
+  tags: ["search", "find", "query", "semantic", "filter"]
 
-# Use existing endpoint for semantic search
+# Multi-step DSL with AI-assisted query planning
 implementation:
-  type: existing_endpoint
-  endpoint: "/api/search/semantic"
-  method: "POST"
+  type: dsl_logic
+  logic:
+    steps:
+      # Phase 1: Intent Analysis - Figure out what the user wants
+      - action: ai_generate
+        model: "gpt-4o-mini"
+        temperature: 0.1
+        max_tokens: 600
+        context:
+          user_query: "{input.query}"
+          available_objects: "contact, account, opportunity, campaign, users, activity, web_session"
+        system_prompt: |
+          role: OMNI_SEARCH_INTENT_ANALYZER
+
+          Analyze this search query and determine the strategy:
+          USER QUERY: {user_query}
+          AVAILABLE OBJECTS: {available_objects}
+
+          Query patterns to detect:
+          1. SEMANTIC_ONLY: "find John Smith", "tech companies", "senior engineers"
+             → Use embeddings to find semantically similar records
+
+          2. STRUCTURED_ONLY: "contacts created last month", "opportunities over $50k"
+             → Use SQL filters (dates, numbers, exact conditions)
+
+          3. HYBRID: "tech contacts who visited last week", "hot leads with no activities"
+             → Semantic search THEN apply filters
+
+          4. RELATIONSHIP: "contacts at tech companies", "opportunities with no activities"
+             → Join across tables using foreign keys
+             → IMPORTANT: Extract the search term for semantic query (e.g., "contacts at Google" → semantic_query="Google")
+
+          CRITICAL: For relationships, ALWAYS use dict format, NEVER use SQL syntax:
+          ❌ WRONG: "relationships": ["opportunity.account_id = account.id"]
+          ✅ CORRECT: "relationships": [{"source": "opportunity", "target": "account", "via": "account_id"}]
+
+          Return JSON:
+          {
+            "strategy": "semantic_only|structured_only|hybrid|relationship",
+            "primary_object": "contact|account|opportunity|etc",
+            "semantic_query": "extracted semantic search term (REQUIRED for relationship and hybrid searches)",
+            "filters": [
+              {"field": "created_at", "op": ">=", "value": "2025-01-01", "object": "contact"},
+              {"field": "amount", "op": ">", "value": 50000, "object": "opportunity"}
+            ],
+            "relationships": [
+              {"source": "contact", "target": "account", "via": "account_id"}
+            ],
+            "time_filters": [
+              {"field": "created_at", "range": "last_30_days"}
+            ],
+            "limit": 10,
+            "confidence": "high|medium|low"
+          }
+        store_as: query_intent
+
+      # DEBUG: Log AI response
+      - action: python
+        code: |
+          import json
+          print("=" * 80)
+          print("DEBUG: AI INTENT ANALYZER RAW OUTPUT")
+          print(json.dumps(query_intent, indent=2))
+          print("=" * 80)
+          result = {"logged": True}
+        store_as: debug_log
+
+      # Phase 2a: Semantic Search (if strategy includes semantic)
+      - action: python
+        condition: "{query_intent.strategy} in ['semantic_only', 'hybrid', 'relationship']"
+        code: |
+          from core.ai.openai_client import OpenAIClient
+          from core.ai.record_embedding_service import ensure_embedding_tables
+          from core.ai.schema_context import get_searchable_object_names
+          import time
+
+          # Get inputs
+          semantic_query = query_intent.get('semantic_query', '').strip()
+          primary_object = query_intent.get('primary_object')
+          strategy = query_intent.get('strategy')
+          limit = 50
+
+          if not semantic_query:
+              result = {"success": True, "results": [], "total_found": 0, "query_time_ms": 0}
+          else:
+              # Ensure embedding tables exist
+              ensure_embedding_tables(ctx.db)
+
+              # Get query embedding
+              client = OpenAIClient()
+              if not client.available:
+                  result = {"success": False, "error": "OpenAI embeddings not available"}
+              else:
+                  embeddings = client.embed([semantic_query])
+                  if not embeddings:
+                      result = {"success": False, "error": "Failed to generate embeddings"}
+                  else:
+                      query_embedding = embeddings[0]
+                      start_time = time.time()
+
+                      # Convert embedding to PostgreSQL vector format
+                      embedding_str = '[' + ','.join(map(str, query_embedding)) + ']'
+
+                      # Use raw connection for vector similarity
+                      raw_conn = ctx.db.get_bind().raw_connection()
+                      cursor = raw_conn.cursor()
+
+                      try:
+                          # Determine object types to search
+                          if primary_object:
+                              object_types = [primary_object]
+                          else:
+                              object_types = list(get_searchable_object_names())
+
+                          objects_filter = f"object_name IN ({','.join(repr(t) for t in object_types)})"
+
+                          # Build SQL query - handle relationship traversal
+                          relationships = query_intent.get('relationships', [])
+                          if strategy == 'relationship' and relationships:
+                              # Parse relationship - could be string like "contact.account", JSON string, or dict
+                              rel = relationships[0]
+                              if isinstance(rel, str):
+                                  # Check if it's a JSON string first
+                                  if rel.startswith('{'):
+                                      import json
+                                      rel = json.loads(rel)
+                                      source_table = rel.get('source', 'contact')
+                                      target_table = rel.get('target', 'account')
+                                  else:
+                                      # Parse "contact.account" format
+                                      parts = rel.split('.')
+                                      source_table = parts[0] if len(parts) > 0 else 'contact'
+                                      target_table = parts[1] if len(parts) > 1 else 'account'
+                              else:
+                                  # Dict format {"source": "contact", "target": "account"}
+                                  source_table = rel.get('source', 'contact')
+                                  target_table = rel.get('target', 'account')
+
+                              # Build FK column name
+                              fk_col = target_table + "_id"
+
+                              # Build SQL using .format() for exec() compatibility
+                              sql = """
+                                  SELECT DISTINCT
+                                      %s as object_name,
+                                      src.id as record_id,
+                                      e.text_blob as snippet,
+                                      1 - (e.embedding <=> %s::vector) as similarity_score
+                                  FROM ai.record_embeddings e
+                                  INNER JOIN {} src ON src.{} = e.record_id
+                                  WHERE e.object_name = %s
+                                  AND NOT e.soft_deleted
+                                  ORDER BY similarity_score DESC
+                                  LIMIT %s
+                              """.format(source_table, fk_col)
+
+                              # Debug: log the actual SQL being executed
+                              import logging
+                              logger = logging.getLogger(__name__)
+                              logger.info(f"Relationship search SQL: source={source_table}, target={target_table}, fk={fk_col}")
+                              logger.info(f"SQL FULL: {sql}")
+                              print(f"=== DEBUG SQL ===")
+                              print(f"source_table={source_table}, target_table={target_table}, fk_col={fk_col}")
+                              print(f"SQL: {sql}")
+                              print(f"Params: {(source_table, embedding_str[:20], target_table, limit)}")
+
+                              cursor.execute(sql, (source_table, embedding_str, target_table, limit))
+                          else:
+                              # Standard semantic search
+                              sql = f"""
+                                  SELECT
+                                      object_name,
+                                      record_id,
+                                      text_blob as snippet,
+                                      1 - (embedding <=> %s::vector) as similarity_score
+                                  FROM ai.record_embeddings
+                                  WHERE {objects_filter}
+                                  AND NOT soft_deleted
+                                  ORDER BY similarity_score DESC
+                                  LIMIT %s
+                              """
+                              cursor.execute(sql, (embedding_str, limit))
+
+                          rows = cursor.fetchall()
+
+                          # Get record details
+                          from sqlalchemy import text
+                          results = []
+                          for row in rows:
+                              obj_name = row[0]
+                              record_id = row[1]
+                              snippet = row[2]
+                              score = float(row[3])
+
+                              # Get additional details
+                              record_info = {}
+                              if obj_name == "contact":
+                                  detail_sql = text("SELECT first_name, last_name, email, company_name, title FROM contact WHERE id = :id")
+                                  detail_row = ctx.db.execute(detail_sql, {"id": record_id}).fetchone()
+                                  if detail_row:
+                                      record_info = {
+                                          "name": f"{detail_row[0] or ''} {detail_row[1] or ''}".strip(),
+                                          "email": detail_row[2] or "",
+                                          "company": detail_row[3] or "",
+                                          "title": detail_row[4] or ""
+                                      }
+                              elif obj_name == "account":
+                                  detail_sql = text("SELECT company_name FROM account WHERE id = :id")
+                                  detail_row = ctx.db.execute(detail_sql, {"id": record_id}).fetchone()
+                                  if detail_row:
+                                      record_info = {"name": detail_row[0] or ""}
+
+                              # Create hyperlink-formatted display name
+                              display_name = record_info.get('name', record_id[:8])
+                              hyperlink_name = f"{{{{{obj_name}:{record_id}|{display_name}}}}}"
+
+                              results.append({
+                                  "id": record_id,
+                                  "type": obj_name,
+                                  "display_name": hyperlink_name,
+                                  "snippet": snippet[:200] + "..." if len(snippet) > 200 else snippet,
+                                  "relevance_score": score,
+                                  **record_info
+                              })
+
+                          query_time_ms = int((time.time() - start_time) * 1000)
+                          result = {
+                              "success": True,
+                              "results": results,
+                              "total_found": len(results),
+                              "query_time_ms": query_time_ms
+                          }
+                      finally:
+                          cursor.close()
+                          raw_conn.close()
+        store_as: semantic_results
+
+      # Phase 2b: Direct SQL Query (if strategy is structured_only)
+      - action: python
+        condition: "{query_intent.strategy} == 'structured_only'"
+        code: |
+          from core.query_builder import execute_database_query
+
+          query_spec = {
+              'object': query_intent.get('primary_object'),
+              'filters': query_intent.get('filters', []),
+              'limit': query_intent.get('limit', 10)
+          }
+
+          result = execute_database_query(query_spec, ctx.db)
+        store_as: sql_results
+
+      # Phase 3: Apply Post-Filters (for hybrid strategy)
+      - action: python
+        condition: "{query_intent.strategy} == 'hybrid'"
+        code: |
+          from core.web.database import SessionLocal
+          from sqlalchemy import text
+
+          # Get semantic results
+          semantic_hits = semantic_results.get('results', [])
+          if not semantic_hits:
+              result = {'filtered_results': [], 'total': 0}
+          else:
+              # Extract IDs from semantic search
+              record_ids = [r['id'] for r in semantic_hits]
+
+              # Build filter SQL
+              filters = query_intent.get('filters', [])
+              filter_clauses = []
+              for f in filters:
+                  field = f['field']
+                  op = f['op']
+                  value = f['value']
+
+                  if op == '>=':
+                      filter_clauses.append(f"{field} >= '{value}'")
+                  elif op == '>':
+                      filter_clauses.append(f"{field} > {value}")
+                  elif op == '=':
+                      filter_clauses.append(f"{field} = '{value}'")
+
+              # Query database with filters
+              db = SessionLocal()
+              try:
+                  obj_type = query_intent['primary_object']
+                  where_clause = " AND ".join(filter_clauses) if filter_clauses else "1=1"
+
+                  sql = f"""
+                      SELECT id, first_name, last_name, email, company, title
+                      FROM {obj_type}
+                      WHERE id = ANY(ARRAY[{','.join(f"'{id}'" for id in record_ids)}])
+                      AND {where_clause}
+                      LIMIT {query_intent.get('limit', 10)}
+                  """
+
+                  rows = db.execute(text(sql)).fetchall()
+
+                  result = {
+                      'filtered_results': [
+                          {
+                              'id': r[0],
+                              'name': f"{r[1]} {r[2]}".strip(),
+                              'email': r[3],
+                              'company': r[4],
+                              'title': r[5]
+                          }
+                          for r in rows
+                      ],
+                      'total': len(rows),
+                      'semantic_hits': len(semantic_hits),
+                      'filters_applied': len(filter_clauses)
+                  }
+              finally:
+                  db.close()
+        store_as: filtered_results
+
+      # Phase 4: Format Final Results
+      - action: python
+        code: |
+          # Consolidate results from different paths
+          strategy = query_intent.get('strategy')
+
+          if strategy == 'semantic_only' or strategy == 'relationship':
+              final = {
+                  'results': semantic_results.get('results', []),
+                  'total': semantic_results.get('total_found', 0),
+                  'strategy_used': strategy
+              }
+          elif strategy == 'structured_only':
+              final = {
+                  'results': sql_results.get('results', []),
+                  'total': sql_results.get('total', 0),
+                  'strategy_used': strategy
+              }
+          elif strategy == 'hybrid':
+              final = {
+                  'results': filtered_results.get('filtered_results', []),
+                  'total': filtered_results.get('total', 0),
+                  'strategy_used': strategy,
+                  'semantic_hits': filtered_results.get('semantic_hits', 0),
+                  'filters_applied': filtered_results.get('filters_applied', 0)
+              }
+          else:
+              final = {'results': [], 'total': 0, 'error': 'unknown strategy'}
+
+          result = final
+        store_as: final_results
+
+      # Phase 5: Format answer with hyperlinks
+      - action: python
+        code: |
+          total = final_results.get('total', 0)
+          results = final_results.get('results', [])
+
+          if total == 0:
+            answer = "No results found"
+          elif total == 1:
+            # Single result - include the hyperlinked name
+            r = results[0]
+            display_name = r.get('display_name', 'record')
+            email = r.get('email', '')
+            if email:
+              answer = f"I found {display_name} ({email})"
+            else:
+              answer = f"I found {display_name}"
+          elif total <= 3:
+            # Check if they're all the same person (same name, different emails)
+            unique_names = set(r.get('name', '') for r in results)
+            if len(unique_names) == 1 and total > 1:
+              # Same person, multiple records
+              name = results[0].get('name', 'this person')
+              emails = [r.get('email', '') for r in results if r.get('email')]
+              answer = f"I found {total} records for {results[0].get('display_name', name)}"
+              if emails:
+                answer += f" with different emails: {', '.join(emails[:3])}"
+                if len(emails) > 3:
+                  answer += f" and {len(emails) - 3} more"
+            else:
+              # Different people
+              names = [r.get('display_name', 'record') for r in results]
+              answer = f"I found {', '.join(names)}"
+          else:
+            # Many results - show top 3 with context (company, title) to help differentiate
+            top_matches = []
+            for r in results[:3]:
+              name = r.get('display_name', 'record')
+              company = r.get('company', '')
+              title = r.get('title', '')
+
+              # Add context if available
+              context_parts = []
+              if company:
+                context_parts.append(company)
+              if title:
+                context_parts.append(title)
+
+              if context_parts:
+                top_matches.append(f"{name} ({', '.join(context_parts)})")
+              else:
+                top_matches.append(name)
+
+            answer = f"I found {total} records. Top matches: {', '.join(top_matches)}"
+            if total > 3:
+              answer += f" and {total - 3} more"
+
+          result = {'answer': answer}
+        store_as: formatted_answer
+
+      # Phase 6: Return results
+      - action: return_final_answer
+        answer: "{formatted_answer.answer}"
+        response_type: "search_results"
+        response_data: "{final_results}"
 
 # Input schema
 input_schema:
@@ -28,26 +445,12 @@ input_schema:
   properties:
     query:
       type: string
-      description: "Natural language search query - can include names, companies, locations, job titles, etc."
-      examples: 
-        - "John Smith" 
-        - "tech startups in San Francisco"
-        - "marketing managers at SaaS companies"
+      description: "Natural language search query with any filters or conditions"
+      examples:
+        - "find John Smith at Google"
+        - "tech contacts who visited last month"
+        - "opportunities over $50k with no activity"
       minLength: 1
-    limit:
-      type: integer
-      description: "Maximum number of results to return"
-      default: 10
-      minimum: 1
-      maximum: 100
-    include_accounts:
-      type: boolean
-      description: "Include account/company matches in results"
-      default: true
-    include_contacts:
-      type: boolean  
-      description: "Include contact/person matches in results"
-      default: true
   required: ["query"]
 
 # Output schema
@@ -56,70 +459,15 @@ output_schema:
   properties:
     success:
       type: boolean
-      description: "Whether the search completed successfully"
     results:
       type: array
-      description: "Array of matching contacts and accounts with relevance scores"
       items:
         type: object
-        properties:
-          id:
-            type: string
-            description: "Record ID"
-          type:
-            type: string
-            enum: ["contact", "account"]
-            description: "Type of record"
-          name:
-            type: string
-            description: "Person or company name"
-          email:
-            type: string
-            description: "Primary email address (contacts only)"
-          company:
-            type: string
-            description: "Company name (for contacts)"
-          title:
-            type: string
-            description: "Job title (contacts only)"
-          relevance_score:
-            type: number
-            description: "Search relevance score (0-1)"
-          snippet:
-            type: string
-            description: "Brief description showing why this matched"
-    total_found:
+    total:
       type: integer
-      description: "Total number of matches found (before limit)"
-    query_time_ms:
-      type: integer
-      description: "Search execution time in milliseconds"
-    suggestions:
-      type: array
-      description: "Alternative search suggestions if few results"
-      items:
-        type: string
-  required: ["success", "results", "total_found"]
+    strategy_used:
+      type: string
+      enum: ["semantic_only", "structured_only", "hybrid", "relationship"]
 
-# Security & UX - Search doesn't need approval
 requires_approval: false
-permissions: ["contacts:read", "accounts:read"]
-
-# Error handling
-error_schema:
-  type: object
-  properties:
-    success:
-      type: boolean
-      const: false
-    error_code:
-      type: string
-      enum: ["INVALID_QUERY", "PERMISSION_DENIED", "SEARCH_TIMEOUT", "SERVICE_ERROR"]
-    error_message:
-      type: string
-      description: "Human-readable error message"
-    suggestions:
-      type: array
-      description: "Suggestions to fix the query"
-      items:
-        type: string
+permissions: ["objects:read"]

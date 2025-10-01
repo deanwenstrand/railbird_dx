@@ -2,15 +2,17 @@ type: action
 name: data_analytics
 description: "Answer analytical questions about your data with smart visualizations"
 version: 1.0
+agent_access: ["crm_coordinator", "unified_assistant"]
 completion_behavior: auto_final
 
 # LLM Integration - perfect for natural language analytics
 ai:
-  when_to_use: "When user asks analytical questions about data, counts, trends, breakdowns, or statistics"
+  when_to_use: "When user asks analytical questions about data, counts, trends, breakdowns, or statistics. Use for ANY 'how many' or 'count' questions."
   examples:
     - "how many contacts were created last month?"
+    - "how many deans created last month?" # Combining name filter + count + date
     - "show me opportunities by stage"
-    - "count accounts by industry" 
+    - "count accounts by industry"
     - "contacts from technology companies created this year"
     - "breakdown of activities by type"
     - "how many leads came in yesterday?"
@@ -203,7 +205,7 @@ implementation:
         condition: "not {fast_path_result.matched}"
         context:
           user_query: "{input.query}"
-          date_today: "{%python_expr%}from datetime import datetime; datetime.now().strftime('%Y-%m-%d'){%/python_expr%}"
+          date_today: "2025-01-27"
           targeted_schema: "{targeted_schema_response.targeted_schema}"
           query_type: "{schema_discovery.query_type}"
           group_by_fields: "{schema_discovery.group_by_fields}"
@@ -313,7 +315,7 @@ implementation:
             - handle_all_common_analytics_patterns
         context:
           user_query: "{input.query}"
-          date_today: "{%python_expr%}from datetime import datetime; datetime.now().strftime('%Y-%m-%d'){%/python_expr%}"
+          date_today: "2025-01-27"
           targeted_schema: "{targeted_schema_response.targeted_schema}"
         store_as: query_specification
         

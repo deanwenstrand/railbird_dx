@@ -1,0 +1,124 @@
+name: code_preview
+description: Generate a validated preview of proposed code changes
+completion_behavior: auto_final
+ai:
+  effect: read
+  when_to_use: After analyzing files and determining changes, generate preview for user approval
+  examples:
+    - "Generate preview for adding middle_name field to contact.dx"
+    - "Create preview for layout modifications"
+  tags: [code-editing, preview, validation]
+  priority: high
+
+input_schema:
+  type: object
+  properties:
+    changes:
+      type: array
+      items:
+        type: object
+        properties:
+          kind:
+            type: string
+            enum: [replace_range]
+            description: Type of change (only replace_range supported for now)
+          file:
+            type: string
+            description: File path to modify
+          start:
+            type: object
+            properties:
+              line:
+                type: number
+                description: Start line (0-based)
+              col:
+                type: number
+                description: Start column (0-based)
+            required: [line, col]
+          end:
+            type: object
+            properties:
+              line:
+                type: number
+                description: End line (0-based)
+              col:
+                type: number
+                description: End column (0-based)
+            required: [line, col]
+          text:
+            type: string
+            description: Text to insert
+          base_etag:
+            type: string
+            description: ETag of file content (from file_read)
+        required: [kind, file, start, end, text, base_etag]
+      description: List of changes to preview
+    summary:
+      type: string
+      description: Summary of what changes do
+    rationale:
+      type: string
+      description: Why these changes are being made
+  required: [changes, summary]
+
+output_schema:
+  type: object
+  properties:
+    preview_id:
+      type: string
+      description: ID to reference this preview
+    patchset:
+      type: object
+      properties:
+        changes:
+          type: array
+        summary:
+          type: string
+        rationale:
+          type: string
+      required: [changes, summary]
+    validations:
+      type: array
+      items:
+        type: object
+        properties:
+          file:
+            type: string
+          errors:
+            type: array
+          warnings:
+            type: array
+          passed:
+            type: boolean
+        required: [file, passed]
+    files_affected:
+      type: array
+      items:
+        type: string
+      description: List of files that will be modified
+    layout_hint:
+      type: string
+      default: code_edit
+      description: UI layout to use for displaying preview
+  required: [preview_id, patchset, validations, files_affected]
+
+agent_access: [crm_coordinator, admin, developer, lexdx_dev, unified_assistant]
+
+implementation:
+  type: dsl_logic
+  logic:
+    steps:
+      - action: code_preview_generate
+        changes: "{input.changes}"
+        summary: "{input.summary}"
+        rationale: "{input.rationale}"
+        store_as: preview_result
+
+      - action: return_final_answer
+        answer: "Generated code preview. {preview_result.patchset.summary}"
+        response_data:
+          preview_id: "{preview_result.preview_id}"
+          patchset: "{preview_result.patchset}"
+          validations: "{preview_result.validations}"
+          files_affected: "{preview_result.files_affected}"
+          layout_hint: "code_edit"

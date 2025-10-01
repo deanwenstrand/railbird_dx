@@ -1,7 +1,9 @@
 type: action
 name: undo_change
 description: "Undo recent field changes on contacts, accounts, or other records using the platform's change history"
+completion_behavior: auto_final
 version: 1.0
+agent_access: ["crm_coordinator", "unified_assistant"]
 
 # LLM Integration Metadata
 ai:

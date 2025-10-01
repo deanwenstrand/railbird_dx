@@ -1,0 +1,75 @@
+name: file_read
+description: Read content of a file with line numbers for code editing
+completion_behavior: continue_workflow
+ai:
+  effect: read
+  when_to_use: After finding files, read their content to understand structure
+  examples:
+    - "Read meta_dx/schemas/contact.dx"
+    - "Get content of contact schema with line numbers"
+    - "Show me the current content of account layout"
+  tags: [file-system, read, code-editing]
+  priority: high
+
+input_schema:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: Path to file to read (relative to project root)
+      minLength: 1
+    line_range:
+      type: object
+      properties:
+        start:
+          type: number
+          description: Start line number (1-based, inclusive)
+        end:
+          type: number
+          description: End line number (1-based, inclusive)
+      description: Optional line range to read specific section
+  required: [file_path]
+
+output_schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: Path to the file that was read
+    content:
+      type: string
+      description: Raw file content
+    content_with_line_numbers:
+      type: string
+      description: Content formatted with line numbers for reference
+    etag:
+      type: string
+      description: Hash of content for staleness checking
+    total_lines:
+      type: number
+      description: Total number of lines in file
+    file_size_bytes:
+      type: number
+      description: Size of file in bytes
+  required: [path, content, content_with_line_numbers, etag, total_lines]
+
+agent_access: [crm_coordinator, admin, developer, lexdx_dev, unified_assistant]
+
+implementation:
+  type: dsl_logic
+  logic:
+    steps:
+      - action: file_read
+        file_path: "{input.file_path}"
+        line_range: "{input.line_range}"
+        store_as: file_data
+
+      - action: return_final_answer
+        answer: "Read {file_data.total_lines} lines from {input.file_path}"
+        response_data:
+          path: "{file_data.path}"
+          content: "{file_data.content}"
+          content_with_line_numbers: "{file_data.content_with_line_numbers}"
+          etag: "{file_data.etag}"
+          total_lines: "{file_data.total_lines}"
+          file_size_bytes: "{file_data.file_size_bytes}"

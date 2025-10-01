@@ -1,0 +1,89 @@
+name: file_search
+description: Search for LexDX .dx files by name pattern or type
+completion_behavior: continue_workflow
+ai:
+  effect: read
+  when_to_use: When you need to find schema, layout, automation, or other .dx files
+  parameter_guidance:
+    pattern: "Extract ONLY the entity/object name (e.g., 'contact', 'account', 'opportunity'). Do NOT include file type words like 'schema', 'layout', or 'form' in the pattern - use file_type parameter for that."
+    file_type: "Extract the most appropriate file_type from user's request keywords. Available types: schema (data models), layout (forms/UI), automation (rules/workflows), integration, validation, form, report, endpoint, all (search everything)"
+  examples:
+    - input: "Find contact schema file"
+      params: {pattern: "contact", file_type: "schema"}
+      reasoning: "Entity is 'contact', type is 'schema'"
+    - input: "Modify contact layout"
+      params: {pattern: "contact", file_type: "layout"}
+      reasoning: "Entity is 'contact', type is 'layout'"
+    - input: "Add field to contact form"
+      params: {pattern: "contact", file_type: "layout"}
+      reasoning: "Entity is 'contact', 'form' means layout"
+    - input: "Update account schema"
+      params: {pattern: "account", file_type: "schema"}
+      reasoning: "Entity is 'account', type is 'schema'"
+  tags: [file-system, search, code-editing]
+  priority: high
+
+input_schema:
+  type: object
+  properties:
+    pattern:
+      type: string
+      description: "CRITICAL: Extract ONLY the entity/object name (e.g., 'contact', 'account'). NEVER include file type words like 'schema', 'layout', or 'form' in pattern - use file_type parameter for that. Examples: 'contact' not 'contact layout', 'account' not 'account schema'"
+    file_type:
+      type: string
+      enum: [schema, layout, automation, integration, validation, form, report, endpoint, all]
+      default: all
+      description: "Type of .dx file to search for. Extract from user's keywords: schema (data models), layout (forms/UI), automation (rules/workflows), integration, validation, form (same as layout), report, endpoint, all (search everything)"
+    limit:
+      type: number
+      default: 20
+      description: Maximum number of results
+  required: [pattern]
+
+output_schema:
+  type: object
+  properties:
+    files:
+      type: array
+      items:
+        type: object
+        properties:
+          path:
+            type: string
+            description: Relative path to file
+          file_type:
+            type: string
+            description: Type of .dx file (schema, layout, etc)
+          name:
+            type: string
+            description: File name without extension
+          size_bytes:
+            type: number
+            description: File size in bytes
+        required: [path, file_type, name]
+    total_found:
+      type: number
+      description: Total number of files found
+    search_pattern:
+      type: string
+      description: Pattern that was searched
+  required: [files, total_found, search_pattern]
+
+agent_access: [crm_coordinator, admin, developer, lexdx_dev, unified_assistant]
+
+implementation:
+  type: dsl_logic
+  logic:
+    steps:
+      - action: file_search
+        pattern: "{input.pattern}"
+        file_type: "{input.file_type}"
+        limit: "{input.limit}"
+        store_as: search_results
+
+      - action: return_final_answer
+        answer: "Found {search_results.total_found} files matching '{input.pattern}'"
+        response_data:
+          files: "{search_results.files}"
+          total_found: "{search_results.total_found}"
+          search_pattern: "{input.pattern}"

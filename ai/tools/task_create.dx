@@ -1,7 +1,9 @@
 type: action
 name: task_create
 description: "Create a new task, optionally linked to contacts or other records"
+completion_behavior: auto_final
 version: 1.0
+agent_access: ["crm_coordinator", "unified_assistant"]
 
 # LLM Integration Metadata
 ai:

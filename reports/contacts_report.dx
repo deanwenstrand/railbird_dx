@@ -2,6 +2,7 @@ type: report
 name: contacts_report
 title: Contact List Report
 description: "Tabular report showing contact information"
+folder: sales
 source: contact
 
 fields:

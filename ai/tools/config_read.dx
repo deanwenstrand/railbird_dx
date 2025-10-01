@@ -1,0 +1,78 @@
+name: config_read
+description: Read files from the current PLAYBOOK_DIR (scoped configuration directory)
+ai:
+  effect: read
+  when_to_use: When needing to read .dx configuration files for code editing context
+  examples:
+    - "Read the contact.dx schema file"
+    - "Get the account layout definition"
+    - "Check the current automation rules"
+  tags: [code-editing, config, scoped-read]
+  priority: high
+
+input_schema:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: Relative path within PLAYBOOK_DIR (e.g., "schemas/contact.dx")
+      minLength: 1
+    context:
+      type: string
+      description: What to look for in the file
+      default: ""
+  required: [file_path]
+
+output_schema:
+  type: object
+  properties:
+    content:
+      type: string
+      description: File content
+    file_path:
+      type: string
+      description: Relative path within playbook
+    full_path:
+      type: string
+      description: Absolute path to the file
+    exists:
+      type: boolean
+      description: Whether the file exists
+    file_type:
+      type: string
+      description: Type from .dx file (e.g., schema, form, layout)
+    metadata:
+      type: object
+      properties:
+        size:
+          type: integer
+        modified:
+          type: string
+        extension:
+          type: string
+      description: File metadata
+  required: [content, file_path, exists, metadata]
+
+agent_access: [crm_coordinator, admin, developer, lexdx_dev]
+
+implementation:
+  type: dsl_logic
+  logic:
+    steps:
+      - action: read_config_file
+        file_path: "{input.file_path}"
+        store_as: file_data
+
+      - action: extract_dx_type
+        content: "{file_data.content}"
+        store_as: file_type_info
+
+      - action: return_final_answer
+        answer: "Read {file_data.file_path} from config directory"
+        response_data:
+          content: "{file_data.content}"
+          file_path: "{file_data.file_path}"
+          full_path: "{file_data.full_path}"
+          exists: "{file_data.exists}"
+          file_type: "{file_type_info.type}"
+          metadata: "{file_data.metadata}"

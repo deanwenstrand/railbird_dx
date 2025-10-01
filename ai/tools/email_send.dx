@@ -1,8 +1,9 @@
 type: action
 name: email_send
 description: "Send emails to contacts with optional AI-generated content"
+completion_behavior: auto_final
 version: 1.0
-agent_access: ["crm_coordinator"]
+agent_access: ["crm_coordinator", "unified_assistant"]
 
 # LLM Integration Metadata
 ai:

@@ -1,0 +1,207 @@
+type: ai_layout
+name: code_preview
+description: Response layout for code preview approval flow
+category: interactive
+layout_type: approval
+
+components:
+  - name: code_edit_preview
+    type: react_component
+    location: main
+    react: |
+      import React, { useState } from 'react';
+
+      // Extract data - could be at top level or in response_data
+      const data = response_data || { patchset: null };
+      const { patchset, validations, files_affected } = data;
+
+      const [expandedWarnings, setExpandedWarnings] = useState({});
+
+      if (!patchset) {
+        return (
+          <div className="text-stone-600 text-sm">
+            No code changes to display
+          </div>
+        );
+      }
+
+      const hasErrors = validations?.some(v => !v.passed) || false;
+
+      return (
+        <div className="border border-stone-200 rounded-lg overflow-hidden bg-white my-2 max-w-2xl">
+          <div className="bg-gradient-to-r from-stone-50 to-stone-100 px-4 py-3 border-b border-stone-200">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <svg className="w-5 h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                  <h3 className="text-sm font-semibold text-stone-900">
+                    Code Changes Preview
+                  </h3>
+                </div>
+                <p className="text-sm text-stone-700 mt-1">
+                  {patchset.summary}
+                </p>
+                {patchset.rationale && (
+                  <p className="text-xs text-stone-600 mt-1 italic">
+                    {patchset.rationale}
+                  </p>
+                )}
+              </div>
+              {hasErrors && (
+                <div className="ml-3">
+                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
+                    Has Errors
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {files_affected && files_affected.length > 0 && (
+            <div className="px-4 py-2 bg-stone-50 border-b border-stone-200">
+              <div className="text-xs font-medium text-stone-600 mb-1">
+                Files to Modify ({files_affected.length})
+              </div>
+              <div className="space-y-0.5">
+                {files_affected.map((file, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-xs">
+                    <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
+                    </svg>
+                    <code className="text-stone-700 font-mono">{file}</code>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="divide-y divide-stone-200">
+            {patchset.changes.map((change, idx) => {
+              const isAddition = change.kind === 'replace_range' && change.start.line === change.end.line && change.start.col === change.end.col;
+              const isDeletion = change.text.trim().startsWith('#') || change.text.trim().startsWith('//');
+              const changeIcon = isDeletion ? '-' : '+';
+              const changeBgColor = isDeletion ? 'bg-red-100' : 'bg-green-100';
+              const changeTextColor = isDeletion ? 'text-red-700' : 'text-green-700';
+
+              return (
+                <div key={idx} className="px-4 py-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <div className={`w-6 h-6 rounded ${changeBgColor} flex items-center justify-center`}>
+                        <span className={`${changeTextColor} text-xs font-bold`}>{changeIcon}</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <code className="text-xs font-mono text-stone-600">
+                          {change.file}
+                        </code>
+                        <span className="text-xs text-stone-500">
+                          Line {change.start.line + 1}
+                        </span>
+                      </div>
+                      <pre className="text-xs font-mono bg-stone-50 border border-stone-200 rounded p-2 overflow-x-auto text-stone-800 whitespace-pre">{change.text}</pre>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {validations && validations.length > 0 && (
+            <div className="px-4 py-3 bg-stone-50 border-t border-stone-200">
+              <div className="text-xs font-medium text-stone-700 mb-2">
+                Validation Results
+              </div>
+              <div className="space-y-2">
+                {validations.map((v, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    {v.passed ? (
+                      <svg className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs">
+                        <code className="text-stone-700 font-mono">{v.file}</code>
+                        <span className={`ml-2 ${v.passed ? 'text-green-700' : 'text-red-700'}`}>
+                          {v.passed ? 'Passed' : `${v.errors?.length || 0} error(s)`}
+                        </span>
+                      </div>
+                      {!v.passed && v.errors && v.errors.length > 0 && (
+                        <div className="mt-1">
+                          <button
+                            onClick={() => setExpandedWarnings(prev => ({...prev, [`errors_${idx}`]: !prev[`errors_${idx}`]}))}
+                            className="text-xs text-red-700 hover:text-red-800 flex items-center gap-1"
+                          >
+                            <svg className={`w-3 h-3 transform transition-transform ${expandedWarnings[`errors_${idx}`] ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                            </svg>
+                            Show errors
+                          </button>
+                          {expandedWarnings[`errors_${idx}`] && (
+                            <div className="mt-2 pl-4 space-y-1">
+                              {v.errors.map((error, eIdx) => (
+                                <div key={eIdx} className="text-xs text-red-700 bg-red-50 rounded px-2 py-1">
+                                  {typeof error === 'string' ? error : error.message || JSON.stringify(error)}
+                                  {error.line && <span className="text-red-600 ml-2">Line {error.line}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {v.warnings && Array.isArray(v.warnings) && v.warnings.length > 0 && (
+                        <div className="mt-1">
+                          <button
+                            onClick={() => setExpandedWarnings(prev => ({...prev, [`warnings_${idx}`]: !prev[`warnings_${idx}`]}))}
+                            className="text-xs text-amber-700 hover:text-amber-800 flex items-center gap-1"
+                          >
+                            <svg className={`w-3 h-3 transform transition-transform ${expandedWarnings[`warnings_${idx}`] ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                            </svg>
+                            {v.warnings.length} warning(s)
+                          </button>
+                          {expandedWarnings[`warnings_${idx}`] && (
+                            <div className="mt-2 pl-4 space-y-1">
+                              {v.warnings.map((warning, wIdx) => (
+                                <div key={wIdx} className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1">
+                                  {typeof warning === 'string' ? warning : warning.message || JSON.stringify(warning)}
+                                  {warning.line && <span className="text-amber-600 ml-2">Line {warning.line}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+
+input_schema:
+  type: object
+  properties:
+    preview_id:
+      type: string
+      description: ID of the code preview
+    patchset:
+      type: object
+      description: Set of code changes to apply
+    validations:
+      type: array
+      description: Validation results for the changes
+    files_affected:
+      type: array
+      description: List of files that will be modified
+  required: [patchset]

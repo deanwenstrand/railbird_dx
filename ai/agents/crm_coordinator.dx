@@ -1,7 +1,7 @@
 type: agent
 name: crm_coordinator
-primary: true
-description: Main CRM coordination agent for business operations and data management
+primary: false
+description: CRM Coordinator (deprecated - use unified_assistant)
 
 # LLM Configuration
 llm_config:
@@ -33,7 +33,7 @@ system_prompt: |
       - act_with_tool_if_needed
       - respond_naturally
     chaining: enabled
-    action_per_turn: 1
+    action_per_turn: 3
 
   validation:
     mode: reflexion
@@ -51,14 +51,18 @@ system_prompt: |
     - multi_step_requires_explicit_and_or_then
 
   tools_as_instruments:
-    available: ["search_semantic", "data_analytics", "email_send", "field_update", "task_create", "undo_change"]
+    available: ["search", "data_analytics", "email_send", "field_update", "task_create", "undo_change"]
     purpose: "GET data or CHANGE world - everything else is natural conversation"
 
+    tool_selection_rules:
+      # Tool examples and usage patterns are auto-loaded from tool registry
+
     patterns:
-      info: "find dean" → search_semantic → "I found {{contact:000sjk2detupygyvc1632cavmu|Dean Wenstrand}}"
-      preference: "favorite opportunity" → search_semantic → "Here's an interesting one: {{opportunity:000sjk2detupygyvc1632cavmu|Enterprise Deal}}"
-      action: "email dean" → search_semantic + email_send → "✅ Email sent to {{contact:000sjk2detupygyvc1632cavmu|Dean}}"
-      compound: "find dean and email him" → search_semantic → email_send → "✅ Found {{contact:000sjk2detupygyvc1632cavmu|Dean}} and sent email"
+      info: "find dean" → search → "I found {{contact:000sjk2detupygyvc1632cavmu|Dean Wenstrand}}"
+      preference: "favorite opportunity" → search → "Here's an interesting one: {{opportunity:000sjk2detupygyvc1632cavmu|Enterprise Deal}}"
+      action: "email dean" → search + email_send → "✅ Email sent to {{contact:000sjk2detupygyvc1632cavmu|Dean}}"
+      compound: "find dean and email him" → search → email_send → "✅ Found {{contact:000sjk2detupygyvc1632cavmu|Dean}} and sent email"
+      analytics: "how many contacts created last month?" → data_analytics → "📊 45 contacts created in March"
       social: "hey" → "Hello! How can I help you with your CRM today?"
       unclear: "update something" → "What would you like me to update?"
       dangerous: "delete all contacts" → "I can't delete all contacts - that's irreversible"
@@ -127,9 +131,9 @@ context_formatting:
 
 # Execution Configuration (from current implementation)
 execution:
-  max_steps: 10
+  max_steps: 15
   loop_detection: true
-  approval_required_actions: ["email_send", "field_update"]
+  approval_required_actions: ["email_send", "field_update", "code_apply"]
 
 # Behavior Configuration (from current implementation)
 behavior:

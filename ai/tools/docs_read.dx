@@ -1,0 +1,72 @@
+name: docs_read
+description: Read LexDX language specification documentation for a given file type
+
+ai:
+  effect: read
+  when_to_use: When needing to understand language specs for specific .dx file types
+  examples:
+    - "Get the schema specification documentation"
+    - "Read layout field type documentation"
+    - "Check automation action types"
+  tags: [code-editing, documentation, language-specs]
+  priority: high
+
+input_schema:
+  type: object
+  properties:
+    file_type:
+      type: string
+      description: The .dx file type (e.g., "schema", "layout", "automation")
+      minLength: 1
+    context:
+      type: string
+      description: What specific information to look for
+      default: ""
+  required: [file_type]
+
+output_schema:
+  type: object
+  properties:
+    file_type:
+      type: string
+      description: The requested file type
+    spec_files:
+      type: array
+      items:
+        type: object
+        properties:
+          file_path:
+            type: string
+          content:
+            type: string
+          exists:
+            type: boolean
+      description: List of spec files found for this type
+    summary:
+      type: string
+      description: Summary of the documentation found
+    relevant_sections:
+      type: array
+      items:
+        type: string
+      description: Key sections relevant to the context
+  required: [file_type, spec_files, summary]
+
+agent_access: [crm_coordinator, admin, developer, lexdx_dev]
+
+implementation:
+  type: dsl_logic
+  logic:
+    steps:
+      - action: read_language_specs
+        file_type: "{input.file_type}"
+        context: "{input.context}"
+        store_as: spec_data
+
+      - action: return_final_answer
+        answer: "Read language specification for {input.file_type}"
+        response_data:
+          file_type: "{input.file_type}"
+          spec_files: "{spec_data.spec_files}"
+          summary: "{spec_data.summary}"
+          relevant_sections: "{spec_data.relevant_sections}"

@@ -1,7 +1,9 @@
 type: action
 name: field_update
 description: "Field updated."
+completion_behavior: auto_final
 version: 1.0
+agent_access: ["crm_coordinator", "unified_assistant"]
 
 # LLM Integration Metadata
 ai:
@@ -26,7 +28,7 @@ implementation:
         store_as: record_data
         
       - action: require_approval
-        message: "Update {record_data.name || record_data.first_name + ' ' + record_data.last_name || input.object_type + ' record'}?"
+        message: "Update {record_data.name || record_data.first_name + \" \" + record_data.last_name || input.object_type + \" record\"}?"
         context:
           record_data: "{record_data}"
           current_values: "{record_data}"
