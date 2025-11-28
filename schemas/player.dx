@@ -30,12 +30,18 @@ fields:
   type: string
   required: true
   length: 100
+  search:
+    enabled: true
+    weight: A
 
 - name: email
   view_name: Email
   type: string
   required: true
   length: 255
+  search:
+    enabled: true
+    weight: B
 
 - name: firebase_id
   view_name: Firebase ID

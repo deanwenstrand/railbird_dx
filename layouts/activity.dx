@@ -2,7 +2,6 @@ type: layout
 name: activity
 add_to_global_nav: false
 weight: 320
-## theme removed (deprecated)
 description: default activity layout
 
 components:
@@ -15,16 +14,10 @@ components:
       - type
       - status
       - direction
-      - outcome
       - timestamp
-      - internal_user_id
-      - external_contact_id
-      - external_party
-      - direction
-      - contact_id
-      - opportunity_id
-      - account_id
+      - player_id
+      - subject
+      - campaign_name
+      - metadata
       - created_at
       - updated_at
-
-

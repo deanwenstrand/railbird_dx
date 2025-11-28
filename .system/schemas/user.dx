@@ -64,20 +64,6 @@ fields:
     table: profile
     column: id
 
-- name: territory_id
-  view_name: Territory
-  type: lookup
-  table: territory
-  display_field: name
-  search_fields: [name, code]
-  placeholder: "Search territories..."
-  required: false
-  foreign_key:
-    table: territory
-    column: id
-    kind: lookup
-    on_delete: nullify
-
 - name: department
   type: string
   required: false
