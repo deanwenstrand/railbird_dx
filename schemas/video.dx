@@ -1,7 +1,7 @@
 type: schema
-object: activity
-view_name: Activities
-description: Represents player activities and interactions (emails, app usage, etc).
+object: video
+view_name: Videos
+description: Represents a video uploaded by a player for analysis.
 deletion_mode: soft
 endpoints:
   - GET
@@ -10,7 +10,7 @@ endpoints:
   - PUT /{id}
   - PATCH /{id}
   - DELETE /{id}
-add_to_top_nav: false
+add_to_top_nav: true
 search:
   enabled: false
 
@@ -32,61 +32,43 @@ fields:
     kind: lookup
     on_delete: cascade
 
-- name: type
-  view_name: Type
-  type: picklist.excl
-  required: true
-  values:
-    - Email Sent
-    - Email Opened
-    - Email Clicked
-    - App Session
-    - Video Uploaded
-    - Video Completed
-    - Website Visit
-    - Push Notification
-    - Other
-
-- name: direction
-  view_name: Direction
-  type: picklist.excl
+- name: railbird_video_id
+  view_name: Railbird Video ID
+  type: string
   required: false
-  values:
-    - Outbound
-    - Inbound
+  length: 128
 
 - name: status
   view_name: Status
   type: picklist.excl
-  required: false
+  required: true
   values:
-    - Pending
+    - Uploading
+    - Processing
     - Completed
     - Failed
-    - Bounced
-  default: Completed
+  default: Uploading
 
-- name: timestamp
-  view_name: Timestamp
+- name: uploaded_at
+  view_name: Uploaded At
   type: datetime
-  required: true
-
-- name: subject
-  view_name: Subject
-  type: string
   required: false
-  length: 500
 
-- name: campaign_name
-  view_name: Campaign Name
-  type: string
+- name: completed_at
+  view_name: Completed At
+  type: datetime
   required: false
-  length: 255
 
-- name: metadata
-  view_name: Metadata
-  type: json
+- name: duration_seconds
+  view_name: Duration (seconds)
+  type: integer
   required: false
+
+- name: shot_count
+  view_name: Shot Count
+  type: integer
+  required: false
+  default: 0
 
 # System-managed audit fields
 - name: created_at

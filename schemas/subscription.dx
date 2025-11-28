@@ -1,7 +1,7 @@
 type: schema
-object: activity
-view_name: Activities
-description: Represents player activities and interactions (emails, app usage, etc).
+object: subscription
+view_name: Subscriptions
+description: Represents a player's subscription status and tier.
 deletion_mode: soft
 endpoints:
   - GET
@@ -10,7 +10,7 @@ endpoints:
   - PUT /{id}
   - PATCH /{id}
   - DELETE /{id}
-add_to_top_nav: false
+add_to_top_nav: true
 search:
   enabled: false
 
@@ -32,61 +32,54 @@ fields:
     kind: lookup
     on_delete: cascade
 
-- name: type
-  view_name: Type
+- name: tier
+  view_name: Tier
   type: picklist.excl
   required: true
   values:
-    - Email Sent
-    - Email Opened
-    - Email Clicked
-    - App Session
-    - Video Uploaded
-    - Video Completed
-    - Website Visit
-    - Push Notification
-    - Other
-
-- name: direction
-  view_name: Direction
-  type: picklist.excl
-  required: false
-  values:
-    - Outbound
-    - Inbound
+    - Free
+    - Pro
+    - Premium
+  default: Free
 
 - name: status
   view_name: Status
   type: picklist.excl
-  required: false
-  values:
-    - Pending
-    - Completed
-    - Failed
-    - Bounced
-  default: Completed
-
-- name: timestamp
-  view_name: Timestamp
-  type: datetime
   required: true
+  values:
+    - Active
+    - Canceled
+    - Past Due
+    - Trialing
+    - Expired
+  default: Active
 
-- name: subject
-  view_name: Subject
-  type: string
+- name: started_at
+  view_name: Started At
+  type: datetime
   required: false
-  length: 500
 
-- name: campaign_name
-  view_name: Campaign Name
+- name: expires_at
+  view_name: Expires At
+  type: datetime
+  required: false
+
+- name: canceled_at
+  view_name: Canceled At
+  type: datetime
+  required: false
+
+- name: stripe_customer_id
+  view_name: Stripe Customer ID
   type: string
   required: false
   length: 255
 
-- name: metadata
-  view_name: Metadata
-  type: json
+- name: stripe_subscription_id
+  view_name: Stripe Subscription ID
+  type: string
   required: false
+  length: 255
 
 # System-managed audit fields
 - name: created_at

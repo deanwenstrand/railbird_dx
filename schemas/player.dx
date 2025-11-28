@@ -1,0 +1,97 @@
+type: schema
+object: player
+view_name: Players
+description: Represents an individual Railbird user/player.
+deletion_mode: soft
+endpoints:
+  - GET
+  - POST
+  - GET /{id}
+  - PUT /{id}
+  - PATCH /{id}
+  - DELETE /{id}
+add_to_top_nav: true
+search:
+  enabled: true
+  fields:
+    - username
+    - email
+
+fields:
+- name: id
+  view_name: Id
+  type: string
+  required: true
+  primary_key: true
+  system_managed: true
+
+- name: username
+  view_name: Username
+  type: string
+  required: true
+  length: 100
+
+- name: email
+  view_name: Email
+  type: string
+  required: true
+  length: 255
+
+- name: firebase_id
+  view_name: Firebase ID
+  type: string
+  required: false
+  length: 128
+
+- name: railbird_user_id
+  view_name: Railbird User ID
+  type: string
+  required: false
+  length: 128
+
+- name: signup_date
+  view_name: Signup Date
+  type: datetime
+  required: false
+
+- name: last_active_at
+  view_name: Last Active
+  type: datetime
+  required: false
+
+- name: video_count
+  view_name: Video Count
+  type: integer
+  required: false
+  default: 0
+
+- name: email_opt_in
+  view_name: Email Opt-In
+  type: boolean
+  required: false
+  default: true
+
+# System-managed audit fields
+- name: created_at
+  view_name: Created At
+  type: datetime
+  required: false
+  system_managed: true
+
+- name: updated_at
+  view_name: Updated At
+  type: datetime
+  required: false
+  system_managed: true
+
+- name: deleted_at
+  view_name: Deleted At
+  type: datetime
+  required: false
+  system_managed: true
+
+- name: search_vector
+  view_name: Search Vector
+  type: string
+  required: false
+  system_managed: true

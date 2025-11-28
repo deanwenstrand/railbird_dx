@@ -1,7 +1,7 @@
 type: schema
-object: activity
-view_name: Activities
-description: Represents player activities and interactions (emails, app usage, etc).
+object: billing
+view_name: Billing Events
+description: Represents billing events and transactions from Stripe.
 deletion_mode: soft
 endpoints:
   - GET
@@ -32,56 +32,58 @@ fields:
     kind: lookup
     on_delete: cascade
 
-- name: type
-  view_name: Type
-  type: picklist.excl
-  required: true
-  values:
-    - Email Sent
-    - Email Opened
-    - Email Clicked
-    - App Session
-    - Video Uploaded
-    - Video Completed
-    - Website Visit
-    - Push Notification
-    - Other
-
-- name: direction
-  view_name: Direction
-  type: picklist.excl
-  required: false
-  values:
-    - Outbound
-    - Inbound
-
-- name: status
-  view_name: Status
-  type: picklist.excl
-  required: false
-  values:
-    - Pending
-    - Completed
-    - Failed
-    - Bounced
-  default: Completed
-
-- name: timestamp
-  view_name: Timestamp
-  type: datetime
-  required: true
-
-- name: subject
-  view_name: Subject
+- name: subscription_id
+  view_name: Subscription
   type: string
   required: false
-  length: 500
+  foreign_key:
+    table: subscription
+    column: id
+    kind: lookup
+    on_delete: nullify
 
-- name: campaign_name
-  view_name: Campaign Name
+- name: event_type
+  view_name: Event Type
+  type: picklist.excl
+  required: true
+  values:
+    - Payment Succeeded
+    - Payment Failed
+    - Subscription Created
+    - Subscription Updated
+    - Subscription Canceled
+    - Refund Issued
+    - Invoice Sent
+  default: Payment Succeeded
+
+- name: amount_cents
+  view_name: Amount (cents)
+  type: integer
+  required: false
+
+- name: currency
+  view_name: Currency
+  type: string
+  required: false
+  length: 3
+  default: "usd"
+
+- name: stripe_event_id
+  view_name: Stripe Event ID
   type: string
   required: false
   length: 255
+
+- name: stripe_invoice_id
+  view_name: Stripe Invoice ID
+  type: string
+  required: false
+  length: 255
+
+- name: event_at
+  view_name: Event At
+  type: datetime
+  required: false
 
 - name: metadata
   view_name: Metadata
