@@ -77,6 +77,22 @@ fields:
   required: false
   default: true
 
+- name: is_subscriber
+  view_name: Is Subscriber
+  type: boolean
+  required: false
+  default: false
+
+- name: subscription_id
+  view_name: Subscription
+  type: string
+  required: false
+  foreign_key:
+    table: subscription
+    column: id
+    kind: lookup
+    on_delete: nullify
+
 # System-managed audit fields
 - name: created_at
   view_name: Created At

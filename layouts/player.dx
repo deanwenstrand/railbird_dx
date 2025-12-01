@@ -19,5 +19,7 @@ components:
       - last_active_at
       - video_count
       - email_opt_in
+      - is_subscriber
+      - subscription_id
       - created_at
       - updated_at
