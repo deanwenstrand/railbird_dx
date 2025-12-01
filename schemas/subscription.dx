@@ -99,3 +99,13 @@ fields:
   type: datetime
   required: false
   system_managed: true
+
+joins:
+  - name: billings
+    view_name: Billing Events
+    object: billing
+    type: one_to_many
+    condition: subscription.id matches billing.subscription_id
+    sort:
+      field: created_at
+      direction: desc

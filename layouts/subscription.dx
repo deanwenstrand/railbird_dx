@@ -25,8 +25,7 @@ components:
     name: subscription_billing
     view_name: Billing Events
     location: main
-    object: billing
-    foreign_key: subscription_id
+    data: subscription.billings
     fields:
       - event_type
       - amount_cents
