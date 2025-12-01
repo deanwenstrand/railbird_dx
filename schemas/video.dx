@@ -38,6 +38,12 @@ fields:
   required: false
   length: 128
 
+- name: name
+  view_name: Name
+  type: string
+  required: false
+  length: 255
+
 - name: status
   view_name: Status
   type: picklist.excl

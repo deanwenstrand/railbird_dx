@@ -16,6 +16,7 @@ embeddings:
 
   video_context:
     include:
+      - object.name
       - object.railbird_video_id
       - object.status
       - object.shot_count

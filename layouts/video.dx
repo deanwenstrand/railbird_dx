@@ -12,6 +12,7 @@ components:
     layout: two_column
     fields:
       - player_id
+      - name
       - railbird_video_id
       - status
       - uploaded_at
