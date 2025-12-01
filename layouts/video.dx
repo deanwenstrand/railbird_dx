@@ -1,0 +1,23 @@
+type: layout
+name: video
+add_to_global_nav: true
+weight: 300
+description: Video detail layout
+
+components:
+  - type: field_section
+    name: video_info
+    view_name: Video Details
+    location: main
+    layout: two_column
+    fields:
+      - player_id
+      - railbird_video_id
+      - status
+      - uploaded_at
+      - completed_at
+      - duration_seconds
+      - shot_count
+      - extra_data
+      - created_at
+      - updated_at

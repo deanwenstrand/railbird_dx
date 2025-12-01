@@ -1,0 +1,23 @@
+type: layout
+name: player
+add_to_global_nav: true
+weight: 100
+description: Player detail layout
+
+components:
+  - type: field_section
+    name: player_info
+    view_name: Player Information
+    location: main
+    layout: two_column
+    fields:
+      - username
+      - email
+      - firebase_id
+      - railbird_user_id
+      - signup_date
+      - last_active_at
+      - video_count
+      - email_opt_in
+      - created_at
+      - updated_at

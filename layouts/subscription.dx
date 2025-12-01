@@ -1,0 +1,22 @@
+type: layout
+name: subscription
+add_to_global_nav: true
+weight: 200
+description: Subscription detail layout
+
+components:
+  - type: field_section
+    name: subscription_info
+    view_name: Subscription Details
+    location: main
+    layout: two_column
+    fields:
+      - player_id
+      - tier
+      - status
+      - started_at
+      - expires_at
+      - stripe_customer_id
+      - stripe_subscription_id
+      - created_at
+      - updated_at

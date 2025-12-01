@@ -1,0 +1,24 @@
+type: layout
+name: billing
+add_to_global_nav: false
+weight: 400
+description: Billing event detail layout
+
+components:
+  - type: field_section
+    name: billing_info
+    view_name: Billing Event Details
+    location: main
+    layout: two_column
+    fields:
+      - player_id
+      - subscription_id
+      - event_type
+      - amount_cents
+      - currency
+      - stripe_event_id
+      - stripe_invoice_id
+      - event_at
+      - extra_data
+      - created_at
+      - updated_at
