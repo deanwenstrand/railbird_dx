@@ -60,4 +60,3 @@ components:
       - status
       - timestamp
       - subject
-      - campaign_name
