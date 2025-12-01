@@ -1,69 +1,38 @@
 type: embeddings
 
 embeddings:
-  sales_info:
+  player_profile:
     include:
-      - object.first_name
-      - object.last_name
-      - object.title
+      - object.username
       - object.email
-      - object.department
-      - recent_activity.snippets[2]
+      - recent_activity.snippets[3]
     normalize: [lowercase, strip_html, collapse_ws, truncate: 300]
     model: text-embedding-3-small
     visibility: core
     storage: sidecar
     index: { metric: cosine, lists: 100 }
     triggers:
-      on_update_fields: [first_name, last_name, title, email, department]
+      on_update_fields: [username, email]
 
-  support_context:
+  video_context:
     include:
-      - tickets.last_3.summaries
-      - tickets.common_issue_tags
-    normalize: [lowercase, strip_html, collapse_ws, truncate: 500]
-    model: text-embedding-3-small
-    visibility: activity
-    storage: sidecar
-    index: { metric: cosine, lists: 100 }
-
-  private_notes:
-    include:
-      - notes.internal.snippets[2]
-    normalize: [pii_redact, lowercase, collapse_ws, truncate: 400]
-    model: local_secure
-    dims: 512
-    visibility: private
-    storage: sidecar
-    guard:
-      action: view_private
-
-  account_overview:
-    include:
-      - object.company_name
-      - object.industry
-      - object.website
-      - object.notes
-      - recent_activity.snippets[3]
-    normalize: [lowercase, strip_html, collapse_ws, truncate: 400]
+      - object.railbird_video_id
+      - object.status
+      - object.shot_count
+    normalize: [lowercase, collapse_ws, truncate: 200]
     model: text-embedding-3-small
     visibility: core
     storage: sidecar
     index: { metric: cosine, lists: 100 }
 
 objects:
-  contact:
+  player:
     fields:
-      - name: sales_info
+      - name: profile_embedding
         type: embedding
-        embedding: sales_info
-      - name: support_ctx
-        type: embedding
-        embedding: support_context
-  account:
+        embedding: player_profile
+  video:
     fields:
-      - name: overview
+      - name: context_embedding
         type: embedding
-        embedding: account_overview
-
-
+        embedding: video_context
