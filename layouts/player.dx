@@ -24,3 +24,35 @@ components:
       - created_at
       - updated_at
 
+  - type: related_list
+    name: player_subscriptions
+    view_name: Subscriptions
+    location: main
+    data: player.subscriptions
+    fields:
+      - tier
+      - status
+      - started_at
+      - expires_at
+
+  - type: related_list
+    name: player_videos
+    view_name: Videos
+    location: main
+    data: player.videos
+    fields:
+      - name
+      - status
+      - uploaded_at
+      - shot_count
+
+  - type: related_list
+    name: player_activities
+    view_name: Activities
+    location: main
+    data: player.activities
+    fields:
+      - type
+      - status
+      - timestamp
+      - subject
