@@ -7,38 +7,15 @@ permission_sets:
 permissions:
   # Admin has full access to everything
   '*':
-    - set: all
+    - action: create
       profiles: [admin]
-
-  # Player data - admins only for now
-  player:
     - action: read
       profiles: [admin]
     - action: search
       profiles: [admin]
     - action: update
       profiles: [admin]
-
-  # Subscription data
-  subscription:
-    - action: read
-      profiles: [admin]
-    - action: update
-      profiles: [admin]
-
-  # Video data
-  video:
-    - action: read
-      profiles: [admin]
-
-  # Billing data
-  billing:
-    - action: read
-      profiles: [admin]
-
-  # Activity data
-  activity:
-    - set: all
+    - action: delete
       profiles: [admin]
 
   endpoint:
