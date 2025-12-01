@@ -113,3 +113,31 @@ fields:
   type: string
   required: false
   system_managed: true
+
+joins:
+  - name: subscriptions
+    view_name: Subscriptions
+    object: subscription
+    type: one_to_many
+    condition: player.id matches subscription.player_id
+    sort:
+      field: created_at
+      direction: desc
+
+  - name: videos
+    view_name: Videos
+    object: video
+    type: one_to_many
+    condition: player.id matches video.player_id
+    sort:
+      field: uploaded_at
+      direction: desc
+
+  - name: activities
+    view_name: Activities
+    object: activity
+    type: one_to_many
+    condition: player.id matches activity.player_id
+    sort:
+      field: timestamp
+      direction: desc
