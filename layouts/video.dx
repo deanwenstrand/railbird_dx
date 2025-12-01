@@ -18,6 +18,5 @@ components:
       - completed_at
       - duration_seconds
       - shot_count
-      - extra_data
       - created_at
       - updated_at
