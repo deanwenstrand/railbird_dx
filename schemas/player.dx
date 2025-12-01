@@ -83,15 +83,11 @@ fields:
   required: false
   default: false
 
-- name: subscription_id
-  view_name: Subscription
-  type: string
+- name: ltv_cents
+  view_name: Lifetime Value (cents)
+  type: integer
   required: false
-  foreign_key:
-    table: subscription
-    column: id
-    kind: lookup
-    on_delete: nullify
+  default: 0
 
 # System-managed audit fields
 - name: created_at

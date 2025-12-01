@@ -20,3 +20,15 @@ components:
       - stripe_subscription_id
       - created_at
       - updated_at
+
+  - type: related_list
+    name: subscription_billing
+    view_name: Billing Events
+    location: main
+    object: billing
+    foreign_key: subscription_id
+    fields:
+      - event_type
+      - amount_cents
+      - currency
+      - event_at
