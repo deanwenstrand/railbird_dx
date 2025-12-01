@@ -1,86 +1,58 @@
 type: security_policy
 
-# Minimal RBAC+ABAC policy (no roles; principals are users or agents)
+# Minimal RBAC policy for Railbird B2C
 permission_sets:
   all: [create, read, search, update, delete]
 
 permissions:
-  # Object permissions per action
-  account:
-    - action: create
-      profiles: [sales_rep]
-    - action: read
-      profiles: [sales_rep]
-    - action: search
-      profiles: [sales_rep]
-    - action: update
-      profiles: [sales_manager]
-    - action: delete
-      profiles: []
-    - action: VIEW_FINANCIALS
-      profiles: [sales_manager]
-  contact:
-    - action: create
-      profiles: [sales_rep, admin]
-    - action: read
-      profiles: [sales_rep, admin]
-    - action: search
-      profiles: [sales_rep, admin]
-    - action: update
-      profiles: [sales_manager, admin]
-    - action: delete
-      profiles: [admin]
+  # Admin has full access to everything
   '*':
     - set: all
       profiles: [admin]
+
+  # Player data - admins only for now
+  player:
+    - action: read
+      profiles: [admin]
+    - action: search
+      profiles: [admin]
+    - action: update
+      profiles: [admin]
+
+  # Subscription data
+  subscription:
+    - action: read
+      profiles: [admin]
+    - action: update
+      profiles: [admin]
+
+  # Video data
+  video:
+    - action: read
+      profiles: [admin]
+
+  # Billing data
+  billing:
+    - action: read
+      profiles: [admin]
+
+  # Activity data
+  activity:
+    - set: all
+      profiles: [admin]
+
   endpoint:
     - action: execute
       profiles: [admin]
 
 profiles:
-  sales_rep:
-    name: Sales Rep
-    eligible_for: both
-    description: Basic sales user with regional access
-  sales_manager:
-    name: Sales Manager
-    eligible_for: user
-    description: Manager with financial visibility
   admin:
     name: Admin
     eligible_for: user
-    description: Administration profile
+    description: Full administrative access
 
-abac_rules:
-  # Expressions are SQL fragments evaluated in RLS USING clauses
-  territory_wall:
-    applies_to_object: account
-    expression: "territory_id = current_setting('pb.principal_territory', true) OR territory_id IN (SELECT id FROM territory WHERE manager_id = current_setting('pb.principal_id', true))"
-    description: "Users see accounts from their territory or territories they manage"
-  owner_wall:
-    applies_to_object: account
-    expression: "owner_id = current_setting('pb.principal_id', true)"
-  forecast_visibility:
-    applies_to_object: forecast
-    expression: "user_id = current_setting('pb.principal_id', true) OR user_id IN (SELECT id FROM \"users\" WHERE manager_id = current_setting('pb.principal_id', true))"
-  territory_user_access:
-    applies_to_object: users
-    expression: "territory_id = current_setting('pb.principal_territory', true) OR territory_id IN (SELECT id FROM territory WHERE manager_id = current_setting('pb.principal_id', true)) OR id = current_setting('pb.principal_id', true)"
-    description: "Users see other users from their territory or territories they manage, plus themselves"
+# No ABAC rules needed for simple B2C setup
+abac_rules: {}
 
-field_masks:
-  account:
-    - field: arr
-      mask: currency_last4
-      unless_permission: { action: VIEW_FINANCIALS }
-
-temporary_permissions:
-  # Example: grant a specific user/agent a permission temporarily (evaluated at runtime)
-  # These are realized via rows in principal_permission table; this section is metadata only
-  examples:
-    - principal_kind: user
-      principal_id: example-user-id
-      permission: { object: account, action: VIEW_FINANCIALS }
-      expires_in: 3600
-
-
+# No field masks needed
+field_masks: {}
