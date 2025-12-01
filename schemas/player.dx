@@ -130,7 +130,7 @@ joins:
     type: one_to_many
     condition: player.id matches video.player_id
     sort:
-      field: uploaded_at
+      field: created_at
       direction: desc
 
   - name: activities
@@ -139,5 +139,5 @@ joins:
     type: one_to_many
     condition: player.id matches activity.player_id
     sort:
-      field: timestamp
+      field: created_at
       direction: desc
