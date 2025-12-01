@@ -1,6 +1,6 @@
 type: context
 name: crm
-description: "CRM business data and conversation context"
+description: "Railbird B2C data and conversation context"
 
 fields:
   conversation_history:
@@ -9,31 +9,23 @@ fields:
     source: "api.ai_routes.get_conversation_history"
     cache_ttl: 0
     max_items: 10
-    
-  known_contacts:
+
+  known_players:
     type: array
-    description: "Recently accessed or mentioned contacts"  
+    description: "Recently accessed or mentioned players"
     source: "api.ai_routes.get_accumulated_entities"
-    filter: "type=contact"
+    filter: "type=player"
     cache_ttl: 30000
     max_items: 5
-    
-  known_accounts:
-    type: array
-    description: "Recently accessed or mentioned accounts"
-    source: "api.ai_routes.get_accumulated_entities" 
-    filter: "type=account"
-    cache_ttl: 30000
-    max_items: 3
-    
+
   user_profile:
     type: object
     description: "Current user profile and permissions"
     source: "api.ai_routes.get_user_context"
     cache_ttl: 600000
-    
+
   recent_actions:
-    type: array  
+    type: array
     description: "Recent action history for context"
     source: "api.ai_routes.get_accumulated_entities"
     cache_ttl: 10000
