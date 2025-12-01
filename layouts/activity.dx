@@ -18,6 +18,6 @@ components:
       - player_id
       - subject
       - campaign_name
-      - metadata
+      - extra_data
       - created_at
       - updated_at

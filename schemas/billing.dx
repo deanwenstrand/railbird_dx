@@ -85,8 +85,8 @@ fields:
   type: datetime
   required: false
 
-- name: metadata
-  view_name: Metadata
+- name: extra_data
+  view_name: Extra Data
   type: json
   required: false
 
