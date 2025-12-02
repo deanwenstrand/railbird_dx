@@ -1,0 +1,38 @@
+type: automation
+name: subscription_churned
+description: "Alert when a subscription is canceled"
+enabled: true
+
+trigger:
+  type: database_event
+  "on": record_updated
+  tables: [subscription]
+  conditions:
+    - field: status
+      equals: canceled
+
+action:
+  type: python
+  code: |
+    import requests
+    from generated.models import Player
+
+    subscription_id = context.trigger_data.get('id')
+    player_id = context.trigger_data.get('player_id')
+    tier = context.trigger_data.get('tier', 'Unknown')
+    old_status = context.trigger_data.get('old_values', {}).get('status', 'unknown')
+
+    # Get player info
+    player = context.db.query(Player).filter(Player.id == player_id).first()
+    player_name = player.username or player.email if player else 'Unknown'
+    player_email = player.email if player else ''
+    player_ulid = str(player.id) if player else ''
+
+    crm_link = f"https://railbird.dilex.ai/player/{player_ulid}"
+
+    message = f"Churned - {player_name} ({player_email}) canceled their {tier} subscription (was {old_status})\n<{crm_link}|View in CRM>"
+
+    import os
+    webhook_url = os.environ.get('SLACK_SQUAWK_WEBHOOK_URL')
+    if webhook_url:
+        requests.post(webhook_url, json={"text": message}, timeout=10)

@@ -1,0 +1,42 @@
+type: automation
+name: subscription_converted
+description: "Alert when a trial converts to active paid subscription"
+enabled: true
+
+trigger:
+  type: database_event
+  "on": record_updated
+  tables: [subscription]
+  conditions:
+    - field: status
+      equals: active
+
+action:
+  type: python
+  code: |
+    import requests
+    from generated.models import Player
+
+    # Check if this was a conversion from trial
+    old_status = context.trigger_data.get('old_values', {}).get('status')
+    if old_status not in ('trial', 'trialing'):
+        return  # Not a conversion, skip
+
+    subscription_id = context.trigger_data.get('id')
+    player_id = context.trigger_data.get('player_id')
+    tier = context.trigger_data.get('tier', 'Unknown')
+
+    # Get player info
+    player = context.db.query(Player).filter(Player.id == player_id).first()
+    player_name = player.username or player.email if player else 'Unknown'
+    player_email = player.email if player else ''
+    player_ulid = str(player.id) if player else ''
+
+    crm_link = f"https://railbird.dilex.ai/player/{player_ulid}"
+
+    message = f"Converted! - {player_name} ({player_email}) converted to {tier} paid subscription\n<{crm_link}|View in CRM>"
+
+    import os
+    webhook_url = os.environ.get('SLACK_SQUAWK_WEBHOOK_URL')
+    if webhook_url:
+        requests.post(webhook_url, json={"text": message}, timeout=10)

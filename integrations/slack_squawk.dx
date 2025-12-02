@@ -1,0 +1,28 @@
+type: integration
+name: slack_squawk
+service: slack
+description: "Send notifications to #the-flock channel via Squawk webhook"
+
+endpoint_env: SLACK_SQUAWK_WEBHOOK_URL
+method: "POST"
+
+auth:
+  type: "none"
+  description: "Slack webhooks use the URL itself for authentication"
+
+request_mapping:
+  headers:
+    Content-Type: "application/json"
+  body_template: '{"text": "{{message}}"}'
+
+response_mapping:
+  success_condition: "status_code == 200"
+
+error_handling:
+  on_failure: "log_error"
+  retry_attempts: 3
+
+timeout: 30
+retry_config:
+  max_retries: 3
+  backoff_factor: 1.5
