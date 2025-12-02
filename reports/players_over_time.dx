@@ -6,27 +6,27 @@ fields:
   - id
   - username
   - email
-  - created_at
+  - signup_date
 
 options:
   pagination: true
   page_size: 25
   sortable: true
   default_sort:
-    field: created_at
+    field: signup_date
     order: desc
 
 charts:
   - id: signups_over_time
     title: Player Signups Over Time
     type: bar
-    x: created_at
+    x: signup_date
     y: id
     aggregate: count
     time_bucket: month
 
 filters:
-  - field: created_at
+  - field: signup_date
     type: date
     operator: between
     label: Signup Date
