@@ -16,6 +16,7 @@ components:
       - status
       - started_at
       - expires_at
+      - canceled_at
       - stripe_customer_id
       - stripe_subscription_id
       - created_at
