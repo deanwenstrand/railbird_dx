@@ -59,11 +59,6 @@ fields:
   type: datetime
   required: false
 
-- name: expires_at
-  view_name: Expires At
-  type: datetime
-  required: false
-
 - name: canceled_at
   view_name: Canceled At
   type: datetime
