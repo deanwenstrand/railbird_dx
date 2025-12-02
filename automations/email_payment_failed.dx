@@ -87,6 +87,7 @@ action:
         logger.error(f"Failed to send payment failed email: {e}")
 
     # Log activity
+    import json
     activity = Activity(
         player_id=player_id,
         type='Email Sent',
@@ -95,7 +96,7 @@ action:
         timestamp=datetime.utcnow(),
         subject=subject,
         campaign_name='payment_failed',
-        extra_data={'billing_id': str(billing_id)}
+        extra_data=json.dumps({'billing_id': str(billing_id)})
     )
     context.db.add(activity)
     context.db.commit()

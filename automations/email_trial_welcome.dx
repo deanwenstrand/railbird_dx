@@ -88,6 +88,7 @@ action:
         logger.error(f"Failed to send trial welcome email: {e}")
 
     # Log activity
+    import json
     activity = Activity(
         player_id=player_id,
         type='Email Sent',
@@ -96,7 +97,7 @@ action:
         timestamp=datetime.utcnow(),
         subject=subject,
         campaign_name='trial_welcome',
-        extra_data={'subscription_id': str(subscription_id)}
+        extra_data=json.dumps({'subscription_id': str(subscription_id)})
     )
     context.db.add(activity)
     context.db.commit()
