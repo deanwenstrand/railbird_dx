@@ -25,7 +25,7 @@ fields:
 - name: player_id
   view_name: Player
   type: string
-  required: true
+  required: false
   foreign_key:
     table: player
     column: id
@@ -45,7 +45,7 @@ fields:
 - name: event_type
   view_name: Event Type
   type: picklist.excl
-  required: true
+  required: false
   values:
     - Payment Succeeded
     - Payment Failed
@@ -76,6 +76,18 @@ fields:
 
 - name: stripe_invoice_id
   view_name: Stripe Invoice ID
+  type: string
+  required: false
+  length: 255
+
+- name: stripe_customer_id
+  view_name: Stripe Customer ID
+  type: string
+  required: false
+  length: 255
+
+- name: stripe_subscription_id
+  view_name: Stripe Subscription ID
   type: string
   required: false
   length: 255
