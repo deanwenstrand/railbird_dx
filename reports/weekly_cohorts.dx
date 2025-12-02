@@ -1,0 +1,41 @@
+type: report
+name: weekly_cohorts
+title: Weekly Subscription Cohorts
+source: subscription
+fields:
+  - player_id
+  - sub_category
+  - subscription_start_date
+  - started_at
+  - canceled_at
+  - tenure_bucket
+
+options:
+  pagination: true
+  page_size: 50
+  sortable: true
+  default_sort:
+    field: subscription_start_date
+    order: desc
+  display_mode: chart
+  table_collapsed: true
+
+charts:
+  - id: weekly_cohorts
+    title: Weekly Subscription Cohorts
+    type: stacked_bar
+    x: subscription_start_date
+    y: id
+    aggregate: count
+    group_by: sub_category
+    time_bucket: week
+
+filters:
+  - field: subscription_start_date
+    type: date
+    operator: between
+    label: Subscription Start Date
+  - field: sub_category
+    type: picklist
+    operator: equals
+    label: Category

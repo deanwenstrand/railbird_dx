@@ -109,6 +109,27 @@ fields:
     - 4+ months
   description: Duration bucket based on subscription start date
 
+- name: subscription_start_date
+  view_name: Subscription Start Date
+  type: datetime
+  required: false
+  description: Actual subscription start (started_at + 7 days for post-Oct-21 trials, started_at for pre-Oct-21)
+
+- name: sub_category
+  view_name: Category
+  type: picklist.excl
+  required: false
+  values:
+    - Active
+    - Trialing
+    - Past Due
+    - Less than 1mo Cancel
+    - 1mo Cancel
+    - 2mo Cancel
+    - 3mo Cancel
+    - 4+mo Cancel
+  description: Subscription category for cohort analysis
+
 # System-managed audit fields
 - name: created_at
   view_name: Created At
