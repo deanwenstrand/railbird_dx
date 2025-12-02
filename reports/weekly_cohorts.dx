@@ -37,5 +37,6 @@ filters:
     label: Subscription Start Date
   - field: sub_category
     type: picklist
-    operator: equals
-    label: Category
+    operator: not_equals
+    label: Exclude Category
+    default_value: Trialing
