@@ -60,7 +60,7 @@ action:
         direction='Outbound',
         status=email_status,
         timestamp=datetime.utcnow(),
-        subject='Welcome to Railbird - Let\'s improve your pool game!',
+        subject="Welcome to Railbird - Let's improve your pool game!",
         campaign_name='trial_welcome',
         extra_data={'subscription_id': str(subscription_id)}
     )

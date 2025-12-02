@@ -23,7 +23,7 @@ action:
 
     # Get player info
     player = context.db.query(Player).filter(Player.id == player_id).first()
-    player_name = player.username or player.email if player else 'Unknown'
+    player_name = (player.username or player.email) if player else 'Unknown'
     player_email = player.email if player else ''
     player_ulid = str(player.id) if player else ''
 
