@@ -25,7 +25,7 @@ fields:
 - name: player_id
   view_name: Player
   type: string
-  required: true
+  required: false
   foreign_key:
     table: player
     column: id
