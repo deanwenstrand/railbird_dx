@@ -47,34 +47,23 @@ action:
 
     # Build email
     subject = "Welcome to Railbird Pro - Let's improve your pool game!"
-    body = f"""Hey {player_name},
-
-Welcome to Railbird Pro! Your 7-day free trial has started.
-
-Here's how to get the most out of your trial:
-
-1. RECORD YOUR GAMES
-   Open the Railbird app and hit record. Our AI analyzes every shot automatically.
-
-2. REVIEW YOUR STATS
-   After each session, check your shot analysis - see your make percentages,
-   position play, and areas to improve.
-
-3. TRACK YOUR PROGRESS
-   Watch your game improve over time with detailed performance trends.
-
-Your trial gives you full access to all Pro features. After 7 days, you'll
-automatically continue at $9.99/month - cancel anytime if it's not for you.
-
-Questions? Just reply to this email.
-
-Let's run some racks,
-The Railbird Team
-
----
-Railbird - AI-Powered Pool Analysis
-https://railbird.ai
-"""
+    body = f"Hey {player_name},\n\n"
+    body += "Welcome to Railbird Pro! Your 7-day free trial has started.\n\n"
+    body += "Here's how to get the most out of your trial:\n\n"
+    body += "1. RECORD YOUR GAMES\n"
+    body += "   Open the Railbird app and hit record. Our AI analyzes every shot automatically.\n\n"
+    body += "2. REVIEW YOUR STATS\n"
+    body += "   After each session, check your shot analysis - see your make percentages,\n"
+    body += "   position play, and areas to improve.\n\n"
+    body += "3. TRACK YOUR PROGRESS\n"
+    body += "   Watch your game improve over time with detailed performance trends.\n\n"
+    body += "Your trial gives you full access to all Pro features. After 7 days, you'll\n"
+    body += "automatically continue at $9.99/month - cancel anytime if it's not for you.\n\n"
+    body += "Questions? Just reply to this email.\n\n"
+    body += "Let's run some racks,\n"
+    body += "The Railbird Team\n\n"
+    body += "Railbird - AI-Powered Pool Analysis\n"
+    body += "https://railbird.ai"
 
     msg = MIMEMultipart()
     msg['From'] = smtp_user

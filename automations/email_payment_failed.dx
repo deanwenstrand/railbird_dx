@@ -56,30 +56,21 @@ action:
 
     # Build email
     subject = "Action needed: Your Railbird payment didn't go through"
-    body = f"""Hey {player_name},
-
-We tried to process your Railbird Pro payment, but it didn't go through.
-
-This usually happens when:
-- Your card expired
-- Insufficient funds
-- Your bank flagged the charge
-
-TO KEEP YOUR PRO ACCESS:
-Update your payment method in the Railbird app under Settings > Subscription,
-or reply to this email and we'll help you sort it out.
-
-We'll try again in a few days, but updating now ensures you don't lose
-access to your shot analysis and stats.
-
-Thanks for being a Railbird Pro member!
-
-The Railbird Team
-
----
-Railbird - AI-Powered Pool Analysis
-https://railbird.ai
-"""
+    body = f"Hey {player_name},\n\n"
+    body += "We tried to process your Railbird Pro payment, but it didn't go through.\n\n"
+    body += "This usually happens when:\n"
+    body += "- Your card expired\n"
+    body += "- Insufficient funds\n"
+    body += "- Your bank flagged the charge\n\n"
+    body += "TO KEEP YOUR PRO ACCESS:\n"
+    body += "Update your payment method in the Railbird app under Settings > Subscription,\n"
+    body += "or reply to this email and we'll help you sort it out.\n\n"
+    body += "We'll try again in a few days, but updating now ensures you don't lose\n"
+    body += "access to your shot analysis and stats.\n\n"
+    body += "Thanks for being a Railbird Pro member!\n\n"
+    body += "The Railbird Team\n\n"
+    body += "Railbird - AI-Powered Pool Analysis\n"
+    body += "https://railbird.ai"
 
     msg = MIMEMultipart()
     msg['From'] = smtp_user
