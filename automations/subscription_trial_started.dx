@@ -29,7 +29,8 @@ action:
 
     crm_link = f"https://railbird.dilex.ai/player/{player_ulid}"
 
-    message = f"New Trial Started - {player_name} ({player_email}) started a {tier} trial\n<{crm_link}|View in CRM>"
+    newline = "\n"
+    message = f"New Trial Started - {player_name} ({player_email}) started a {tier} trial{newline}<{crm_link}|View in CRM>"
 
     import os
     webhook_url = os.environ.get('SLACK_SQUAWK_WEBHOOK_URL')
