@@ -76,6 +76,30 @@ fields:
   required: false
   length: 255
 
+# Computed fields for reporting (populated during sync)
+- name: trial_outcome
+  view_name: Trial Outcome
+  type: picklist.excl
+  required: false
+  values:
+    - Trialing
+    - Converted
+    - Canceled
+    - Past Due
+  description: Outcome of trial period - Trialing (in progress), Converted (became paying), Canceled (dropped during trial), Past Due (payment issue)
+
+- name: tenure_bucket
+  view_name: Tenure Bucket
+  type: picklist.excl
+  required: false
+  values:
+    - <1mo
+    - 1mo
+    - 2mo
+    - 3mo
+    - 4+mo
+  description: Duration bucket based on subscription start date
+
 # System-managed audit fields
 - name: created_at
   view_name: Created At

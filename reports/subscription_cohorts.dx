@@ -1,6 +1,6 @@
 type: report
 name: subscription_cohorts
-title: Weekly Subscription Cohorts
+title: Subscription Cohorts
 source: subscription
 fields:
   - id
@@ -9,6 +9,8 @@ fields:
   - tier
   - started_at
   - canceled_at
+  - trial_outcome
+  - tenure_bucket
   - stripe_subscription_id
 
 options:
@@ -18,16 +20,35 @@ options:
   default_sort:
     field: started_at
     order: desc
+  display_mode: chart
+  table_collapsed: true
 
 charts:
+  - id: trial_outcomes_by_day
+    title: Daily Trial Outcomes
+    type: stacked_bar
+    x: started_at
+    y: id
+    aggregate: count
+    group_by: trial_outcome
+    time_bucket: day
+
   - id: cohorts_by_week
-    title: Subscription Cohorts by Week
+    title: Weekly Subscription Cohorts by Status
     type: stacked_bar
     x: started_at
     y: id
     aggregate: count
     group_by: status
     time_bucket: week
+
+  - id: churn_by_tenure
+    title: Churned Subscribers by Tenure
+    type: stacked_bar
+    x: tenure_bucket
+    y: id
+    aggregate: count
+    group_by: tenure_bucket
 
 filters:
   - field: started_at
@@ -38,3 +59,11 @@ filters:
     type: picklist
     operator: equals
     label: Status
+  - field: trial_outcome
+    type: picklist
+    operator: equals
+    label: Trial Outcome
+  - field: tenure_bucket
+    type: picklist
+    operator: equals
+    label: Tenure Bucket

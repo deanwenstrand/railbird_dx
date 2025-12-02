@@ -14,6 +14,8 @@ components:
       - player_id
       - tier
       - status
+      - trial_outcome
+      - tenure_bucket
       - started_at
       - canceled_at
       - stripe_customer_id
