@@ -15,7 +15,8 @@ action:
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
-    from generated.models import Player
+    from datetime import datetime
+    from generated.models import Player, Activity
 
     billing_id = context.trigger_data.get('id')
     player_id = context.trigger_data.get('player_id')
@@ -78,12 +79,28 @@ action:
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
 
+    email_status = 'Failed'
     try:
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(smtp_user, smtp_pass)
         server.send_message(msg)
         server.quit()
+        email_status = 'Completed'
         logger.info(f"Payment failed email sent to {player_email}")
     except Exception as e:
         logger.error(f"Failed to send payment failed email: {e}")
+
+    # Log activity
+    activity = Activity(
+        player_id=player_id,
+        type='Email Sent',
+        direction='Outbound',
+        status=email_status,
+        timestamp=datetime.utcnow(),
+        subject=subject,
+        campaign_name='payment_failed',
+        extra_data={'billing_id': str(billing_id)}
+    )
+    context.db.add(activity)
+    context.db.commit()
