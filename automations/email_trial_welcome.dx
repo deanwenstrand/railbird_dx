@@ -43,7 +43,7 @@ action:
         return
 
     # Build email
-    subject = "Welcome to Railbird - Time to improve your pool game!"
+    subject = "Welcome to Railbird Pro - your free trial starts now"
     body = f"Hey {player_name},\n\n"
     body += "Welcome to Railbird! Thanks for signing up.\n\n"
     body += "Here is how to get started:\n\n"
