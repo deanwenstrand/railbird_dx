@@ -1,28 +1,32 @@
 type: report
 name: players_over_time
-view_name: Players Over Time
-description: Player signups over time
+title: Players Over Time
+source: player
+fields:
+  - id
+  - username
+  - email
+  - created_at
 
-data_source:
-  object: player
-
-metrics:
-  - name: player_count
-    view_name: Players
-    aggregation: count
-    field: id
-
-dimensions:
-  - name: signup_month
-    view_name: Month
+options:
+  pagination: true
+  page_size: 25
+  sortable: true
+  default_sort:
     field: created_at
-    granularity: month
+    order: desc
 
-chart:
-  type: bar
-  x_axis: signup_month
-  y_axis: player_count
+charts:
+  - id: signups_over_time
+    title: Player Signups Over Time
+    type: bar
+    x: created_at
+    y: id
+    aggregate: count
+    time_bucket: month
 
 filters:
-  - field: deleted_at
-    operator: is_null
+  - field: created_at
+    type: date
+    operator: between
+    label: Signup Date
