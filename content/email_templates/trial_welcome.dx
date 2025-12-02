@@ -1,0 +1,44 @@
+type: content
+name: trial_welcome
+content_type: email_template
+description: "Welcome email for new trial subscribers"
+
+template:
+  subject: "Welcome to Railbird Pro - Let's improve your pool game!"
+  format: plain_text
+  body: |
+    Hey {{player_name}},
+
+    Welcome to Railbird Pro! Your 7-day free trial has started.
+
+    Here's how to get the most out of your trial:
+
+    1. RECORD YOUR GAMES
+       Open the Railbird app and hit record. Our AI analyzes every shot automatically.
+
+    2. REVIEW YOUR STATS
+       After each session, check your shot analysis - see your make percentages,
+       position play, and areas to improve.
+
+    3. TRACK YOUR PROGRESS
+       Watch your game improve over time with detailed performance trends.
+
+    Your trial gives you full access to all Pro features. After 7 days, you'll
+    automatically continue at $9.99/month - cancel anytime if it's not for you.
+
+    Questions? Just reply to this email.
+
+    Let's run some racks,
+    The Railbird Team
+
+    ---
+    Railbird - AI-Powered Pool Analysis
+    https://railbird.ai
+
+variables:
+  - name: player_name
+    type: string
+    required: true
+  - name: player_email
+    type: string
+    required: true

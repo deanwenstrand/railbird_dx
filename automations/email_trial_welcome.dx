@@ -1,0 +1,93 @@
+type: automation
+name: email_trial_welcome
+description: "Send welcome email when a new trial subscription is created"
+enabled: true
+
+trigger:
+  type: database_event
+  "on": record_created
+  tables: [subscription]
+  conditions:
+    - field: status
+      equals: trialing
+
+action:
+  type: python
+  code: |
+    import os
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    from generated.models import Player
+
+    subscription_id = context.trigger_data.get('id')
+    player_id = context.trigger_data.get('player_id')
+
+    # Get player info
+    player = context.db.query(Player).filter(Player.id == player_id).first()
+    if not player:
+        logger.warning(f"No player found for subscription {subscription_id}")
+        return
+
+    player_email = player.email
+    player_name = player.username or player_email.split('@')[0]
+
+    # DEV FILTER: Only send to test accounts during development
+    if 'deanwenstrand' not in player_email:
+        logger.info(f"Skipping trial welcome email for {player_email} (dev filter)")
+        return
+
+    # Get SMTP credentials
+    smtp_user = os.environ.get('GMAIL_USERNAME')
+    smtp_pass = os.environ.get('GMAIL_APP_PASSWORD')
+
+    if not smtp_user or not smtp_pass:
+        logger.error("Gmail credentials not configured")
+        return
+
+    # Build email
+    subject = "Welcome to Railbird Pro - Let's improve your pool game!"
+    body = f"""Hey {player_name},
+
+Welcome to Railbird Pro! Your 7-day free trial has started.
+
+Here's how to get the most out of your trial:
+
+1. RECORD YOUR GAMES
+   Open the Railbird app and hit record. Our AI analyzes every shot automatically.
+
+2. REVIEW YOUR STATS
+   After each session, check your shot analysis - see your make percentages,
+   position play, and areas to improve.
+
+3. TRACK YOUR PROGRESS
+   Watch your game improve over time with detailed performance trends.
+
+Your trial gives you full access to all Pro features. After 7 days, you'll
+automatically continue at $9.99/month - cancel anytime if it's not for you.
+
+Questions? Just reply to this email.
+
+Let's run some racks,
+The Railbird Team
+
+---
+Railbird - AI-Powered Pool Analysis
+https://railbird.ai
+"""
+
+    msg = MIMEMultipart()
+    msg['From'] = smtp_user
+    msg['To'] = player_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(smtp_user, smtp_pass)
+        server.send_message(msg)
+        server.quit()
+        logger.info(f"Trial welcome email sent to {player_email}")
+    except Exception as e:
+        logger.error(f"Failed to send trial welcome email: {e}")

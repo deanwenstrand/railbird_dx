@@ -1,0 +1,40 @@
+type: content
+name: payment_failed
+content_type: email_template
+description: "Email sent when a payment fails"
+
+template:
+  subject: "Action needed: Your Railbird payment didn't go through"
+  format: plain_text
+  body: |
+    Hey {{player_name}},
+
+    We tried to process your Railbird Pro payment, but it didn't go through.
+
+    This usually happens when:
+    - Your card expired
+    - Insufficient funds
+    - Your bank flagged the charge
+
+    TO KEEP YOUR PRO ACCESS:
+    Update your payment method in the Railbird app under Settings > Subscription,
+    or reply to this email and we'll help you sort it out.
+
+    We'll try again in a few days, but updating now ensures you don't lose
+    access to your shot analysis and stats.
+
+    Thanks for being a Railbird Pro member!
+
+    The Railbird Team
+
+    ---
+    Railbird - AI-Powered Pool Analysis
+    https://railbird.ai
+
+variables:
+  - name: player_name
+    type: string
+    required: true
+  - name: player_email
+    type: string
+    required: true
