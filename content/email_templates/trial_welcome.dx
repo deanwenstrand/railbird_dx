@@ -4,14 +4,14 @@ content_type: email_template
 description: "Welcome email for new trial subscribers"
 
 template:
-  subject: "Welcome to Railbird - Let's improve your pool game!"
+  subject: "Welcome to Railbird - Time to improve your pool game!"
   format: plain_text
   body: |
     Hey {{player_name}},
 
     Welcome to Railbird! Thanks for signing up.
 
-    Here's how to get started:
+    Here is how to get started:
 
     1. WATCH THE QUICK START VIDEO
        See Railbird in action:
@@ -28,12 +28,12 @@ template:
        Watch your game improve over time with detailed stats and trends.
 
     Your 7-day free trial gives you full access to all Pro features.
-    After 7 days, you'll continue at $9.99/month - cancel anytime if
-    it's not for you.
+    After 7 days, you will continue at $9.99/month - cancel anytime if
+    it is not for you.
 
     Questions? Reach out anytime at support@railbird.ai
 
-    Let's run some racks,
+    Happy shooting,
     The Railbird Team
 
     ---

@@ -48,10 +48,10 @@ action:
         return
 
     # Build email
-    subject = "Welcome to Railbird - Let's improve your pool game!"
+    subject = "Welcome to Railbird - Time to improve your pool game!"
     body = f"Hey {player_name},\n\n"
     body += "Welcome to Railbird! Thanks for signing up.\n\n"
-    body += "Here's how to get started:\n\n"
+    body += "Here is how to get started:\n\n"
     body += "1. WATCH THE QUICK START VIDEO\n"
     body += "   See Railbird in action:\n"
     body += "   https://www.youtube.com/watch?v=T066VMI2Vzk\n\n"
@@ -65,10 +65,10 @@ action:
     body += "3. TRACK YOUR PROGRESS\n"
     body += "   Watch your game improve over time with detailed stats and trends.\n\n"
     body += "Your 7-day free trial gives you full access to all Pro features.\n"
-    body += "After 7 days, you'll continue at $9.99/month - cancel anytime if\n"
-    body += "it's not for you.\n\n"
+    body += "After 7 days, you will continue at $9.99/month - cancel anytime if\n"
+    body += "it is not for you.\n\n"
     body += "Questions? Reach out anytime at support@railbird.ai\n\n"
-    body += "Let's run some racks,\n"
+    body += "Happy shooting,\n"
     body += "The Railbird Team\n\n"
     body += "---\n"
     body += "Railbird - AI-Powered Pool Analysis\n"
