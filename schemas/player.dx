@@ -16,6 +16,15 @@ search:
   fields:
     - username
     - email
+default_list_view:
+  fields:
+    - username
+    - email
+    - signup_date
+    - is_subscriber
+    - video_count
+  sort_by: signup_date
+  sort_order: desc
 
 fields:
 - name: id

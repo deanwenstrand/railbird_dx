@@ -13,6 +13,15 @@ endpoints:
 add_to_top_nav: true
 search:
   enabled: false
+default_list_view:
+  fields:
+    - player_id
+    - event_type
+    - amount_cents
+    - currency
+    - created_at
+  sort_by: created_at
+  sort_order: desc
 
 fields:
 - name: id
