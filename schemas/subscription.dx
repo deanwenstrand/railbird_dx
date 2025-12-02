@@ -123,6 +123,7 @@ fields:
     - Active
     - Trialing
     - Past Due
+    - Trial Cancel
     - Less than 1mo Cancel
     - 1mo Cancel
     - 2mo Cancel
