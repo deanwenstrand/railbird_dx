@@ -89,6 +89,12 @@ fields:
   required: false
   default: 0
 
+- name: stripe_customer_id
+  view_name: Stripe Customer ID
+  type: string
+  required: false
+  length: 255
+
 # System-managed audit fields
 - name: created_at
   view_name: Created At

@@ -1,0 +1,176 @@
+type: connector
+name: stripe
+service: stripe
+description: Stripe payment integration for syncing customers, subscriptions, and billing events.
+
+# Webhook configuration - receives events from Stripe
+webhook:
+  path: /api/webhooks/stripe
+  signature_header: Stripe-Signature
+  signature_secret_env: STRIPE_WEBHOOK_SECRET
+  signature_algo: stripe
+  events:
+    # Customer events
+    - type: customer.created
+      mapping:
+        target_model: Player
+        operation: upsert
+        lookup_field: stripe_customer_id
+        lookup_path: ['id']
+        fields:
+          - source: id
+            target: stripe_customer_id
+          - source: email
+            target: email
+          - source: name
+            target: username
+
+    - type: customer.updated
+      mapping:
+        target_model: Player
+        operation: update
+        lookup_field: stripe_customer_id
+        lookup_path: ['id']
+        fields:
+          - source: email
+            target: email
+          - source: name
+            target: username
+
+    # Subscription events
+    - type: customer.subscription.created
+      mapping:
+        target_model: Subscription
+        operation: upsert
+        lookup_field: stripe_subscription_id
+        lookup_path: ['id']
+        fields:
+          - source: id
+            target: stripe_subscription_id
+          - source: customer
+            target: stripe_customer_id
+          - source: status
+            target: status
+          - source: current_period_start
+            target: started_at
+          - source: current_period_end
+            target: expires_at
+
+    - type: customer.subscription.updated
+      mapping:
+        target_model: Subscription
+        operation: update
+        lookup_field: stripe_subscription_id
+        lookup_path: ['id']
+        fields:
+          - source: status
+            target: status
+          - source: current_period_end
+            target: expires_at
+          - source: canceled_at
+            target: canceled_at
+
+    - type: customer.subscription.deleted
+      mapping:
+        target_model: Subscription
+        operation: update
+        lookup_field: stripe_subscription_id
+        lookup_path: ['id']
+        fields:
+          - source: status
+            target: status
+          - source: canceled_at
+            target: canceled_at
+
+    # Invoice/payment events
+    - type: invoice.payment_succeeded
+      mapping:
+        target_model: Billing
+        operation: create
+        fields:
+          - source: id
+            target: stripe_invoice_id
+          - source: subscription
+            target: stripe_subscription_id
+          - source: customer
+            target: stripe_customer_id
+          - source: amount_paid
+            target: amount_cents
+          - source: currency
+            target: currency
+
+    - type: invoice.payment_failed
+      mapping:
+        target_model: Billing
+        operation: create
+        fields:
+          - source: id
+            target: stripe_invoice_id
+          - source: subscription
+            target: stripe_subscription_id
+          - source: customer
+            target: stripe_customer_id
+          - source: amount_due
+            target: amount_cents
+
+    - type: charge.refunded
+      mapping:
+        target_model: Billing
+        operation: create
+        fields:
+          - source: id
+            target: stripe_event_id
+          - source: customer
+            target: stripe_customer_id
+          - source: amount_refunded
+            target: amount_cents
+
+# API client configuration - outbound calls to Stripe
+api:
+  auth:
+    type: api_key
+    api_key_env: STRIPE_SECRET_KEY
+
+# Sync configuration - for backfill and incremental sync
+sync:
+  mappings:
+    - name: customers_to_players
+      source_object: Customer
+      target_model: Player
+      fields:
+        - source: id
+          target: stripe_customer_id
+        - source: email
+          target: email
+        - source: name
+          target: username
+
+    - name: subscriptions
+      source_object: Subscription
+      target_model: Subscription
+      fields:
+        - source: id
+          target: stripe_subscription_id
+        - source: customer
+          target: stripe_customer_id
+        - source: status
+          target: status
+        - source: current_period_start
+          target: started_at
+        - source: current_period_end
+          target: expires_at
+
+    - name: invoices_to_billing
+      source_object: Invoice
+      target_model: Billing
+      fields:
+        - source: id
+          target: stripe_invoice_id
+        - source: subscription
+          target: stripe_subscription_id
+        - source: customer
+          target: stripe_customer_id
+        - source: amount_paid
+          target: amount_cents
+        - source: currency
+          target: currency
