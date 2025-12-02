@@ -33,6 +33,8 @@ action:
     # Differentiate between trial and active churns
     if old_status in ('trial', 'trialing'):
         churn_type = "Trial Canceled"
+    elif old_status == 'past_due':
+        churn_type = "Churned (payment failed)"
     else:
         churn_type = "Churned"
 
