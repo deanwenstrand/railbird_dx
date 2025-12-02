@@ -31,7 +31,7 @@ action:
         return
 
     player_email = player.email
-    player_name = player.username or player_email.split('@')[0]
+    player_name = player.username or "there"
     has_mobile_app = getattr(player, 'has_mobile_app', False) or False
 
     # DEV FILTER: Only send to test accounts during development
