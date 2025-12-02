@@ -4,29 +4,34 @@ content_type: email_template
 description: "Welcome email for new trial subscribers"
 
 template:
-  subject: "Welcome to Railbird Pro - Let's improve your pool game!"
+  subject: "Welcome to Railbird - Let's improve your pool game!"
   format: plain_text
   body: |
     Hey {{player_name}},
 
-    Welcome to Railbird Pro! Your 7-day free trial has started.
+    Welcome to Railbird! Thanks for signing up.
 
-    Here's how to get the most out of your trial:
+    Here's how to get started:
 
-    1. RECORD YOUR GAMES
-       Open the Railbird app and hit record. Our AI analyzes every shot automatically.
-
-    2. REVIEW YOUR STATS
-       After each session, check your shot analysis - see your make percentages,
-       position play, and areas to improve.
-
+    1. SEE HOW IT WORKS
+       Check out our quick guide to using Railbird:
+       https://railbird.ai/#how-it-works
+    {% if not has_mobile_app %}
+    2. DOWNLOAD THE APP
+       Get the Railbird mobile app to record and analyze your games:
+       https://railbird.ai/download
+    {% else %}
+    2. RECORD YOUR FIRST GAME
+       Open the app and hit record - our AI analyzes every shot automatically.
+    {% endif %}
     3. TRACK YOUR PROGRESS
-       Watch your game improve over time with detailed performance trends.
+       Watch your game improve over time with detailed stats and trends.
 
-    Your trial gives you full access to all Pro features. After 7 days, you'll
-    automatically continue at $9.99/month - cancel anytime if it's not for you.
+    Your 7-day free trial gives you full access to all Pro features.
+    After 7 days, you'll continue at $9.99/month - cancel anytime if
+    it's not for you.
 
-    Questions? Just reply to this email.
+    Questions? Reach out anytime at support@railbird.ai
 
     Let's run some racks,
     The Railbird Team
@@ -42,3 +47,7 @@ variables:
   - name: player_email
     type: string
     required: true
+  - name: has_mobile_app
+    type: boolean
+    required: false
+    default: false

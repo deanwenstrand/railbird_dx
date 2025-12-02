@@ -14,12 +14,9 @@ trigger:
 action:
   type: python
   code: |
-    import os
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
     from datetime import datetime
     from generated.models import Player, Activity
+    from generated.integrations import gmail
 
     subscription_id = context.trigger_data.get('id')
     player_id = context.trigger_data.get('player_id')
@@ -32,57 +29,29 @@ action:
 
     player_email = player.email
     player_name = player.username or player_email.split('@')[0]
+    has_mobile_app = player.has_mobile_app or False
 
     # DEV FILTER: Only send to test accounts during development
     if 'deanwenstrand' not in player_email:
         logger.info(f"Skipping trial welcome email for {player_email} (dev filter)")
         return
 
-    # Get SMTP credentials
-    smtp_user = os.environ.get('GMAIL_USERNAME')
-    smtp_pass = os.environ.get('GMAIL_APP_PASSWORD')
+    # Send email using template
+    result = gmail.send_email_with_template(
+        template_name='trial_welcome',
+        recipient_email=player_email,
+        template_data={
+            'player_name': player_name,
+            'player_email': player_email,
+            'has_mobile_app': has_mobile_app
+        }
+    )
 
-    if not smtp_user or not smtp_pass:
-        logger.error("Gmail credentials not configured")
-        return
-
-    # Build email
-    subject = "Welcome to Railbird Pro - Let's improve your pool game!"
-    body = f"Hey {player_name},\n\n"
-    body += "Welcome to Railbird Pro! Your 7-day free trial has started.\n\n"
-    body += "Here's how to get the most out of your trial:\n\n"
-    body += "1. RECORD YOUR GAMES\n"
-    body += "   Open the Railbird app and hit record. Our AI analyzes every shot automatically.\n\n"
-    body += "2. REVIEW YOUR STATS\n"
-    body += "   After each session, check your shot analysis - see your make percentages,\n"
-    body += "   position play, and areas to improve.\n\n"
-    body += "3. TRACK YOUR PROGRESS\n"
-    body += "   Watch your game improve over time with detailed performance trends.\n\n"
-    body += "Your trial gives you full access to all Pro features. After 7 days, you'll\n"
-    body += "automatically continue at $9.99/month - cancel anytime if it's not for you.\n\n"
-    body += "Questions? Just reply to this email.\n\n"
-    body += "Let's run some racks,\n"
-    body += "The Railbird Team\n\n"
-    body += "Railbird - AI-Powered Pool Analysis\n"
-    body += "https://railbird.ai"
-
-    msg = MIMEMultipart()
-    msg['From'] = smtp_user
-    msg['To'] = player_email
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
-
-    email_status = 'Failed'
-    try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(smtp_user, smtp_pass)
-        server.send_message(msg)
-        server.quit()
-        email_status = 'Completed'
+    email_status = 'Completed' if result.get('success') else 'Failed'
+    if not result.get('success'):
+        logger.error(f"Failed to send trial welcome email: {result.get('error')}")
+    else:
         logger.info(f"Trial welcome email sent to {player_email}")
-    except Exception as e:
-        logger.error(f"Failed to send trial welcome email: {e}")
 
     # Log activity
     activity = Activity(
@@ -91,7 +60,7 @@ action:
         direction='Outbound',
         status=email_status,
         timestamp=datetime.utcnow(),
-        subject=subject,
+        subject='Welcome to Railbird - Let\'s improve your pool game!',
         campaign_name='trial_welcome',
         extra_data={'subscription_id': str(subscription_id)}
     )
