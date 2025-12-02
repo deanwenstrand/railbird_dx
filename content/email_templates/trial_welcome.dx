@@ -13,9 +13,9 @@ template:
 
     Here's how to get started:
 
-    1. SEE HOW IT WORKS
-       Check out our quick guide to using Railbird:
-       https://railbird.ai/#how-it-works
+    1. WATCH THE QUICK START VIDEO
+       See Railbird in action:
+       https://www.youtube.com/watch?v=T066VMI2Vzk
     {% if not has_mobile_app %}
     2. DOWNLOAD THE APP
        Get the Railbird mobile app to record and analyze your games:
