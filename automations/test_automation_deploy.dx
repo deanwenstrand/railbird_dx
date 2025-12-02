@@ -1,0 +1,20 @@
+type: automation
+name: test_automation_deploy
+description: "Test automation to verify deployment - should print DEPLOY_TEST_V1"
+enabled: true
+
+trigger:
+  type: database_event
+  "on": record_created
+  tables: [subscription]
+  conditions:
+    - field: status
+      equals: trialing
+
+action:
+  type: python
+  code: |
+    # This is a test automation to verify that new automations get deployed
+    # If you see DEPLOY_TEST_V1 in the logs, the deployment is working correctly
+    logger.info("DEPLOY_TEST_V1 - New automation deployed successfully!")
+    logger.info("If you see this, the generated automation handlers are being updated")
