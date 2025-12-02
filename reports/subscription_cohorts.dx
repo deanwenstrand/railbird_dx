@@ -1,0 +1,40 @@
+type: report
+name: subscription_cohorts
+title: Weekly Subscription Cohorts
+source: subscription
+fields:
+  - id
+  - player_id
+  - status
+  - tier
+  - started_at
+  - canceled_at
+  - stripe_subscription_id
+
+options:
+  pagination: true
+  page_size: 50
+  sortable: true
+  default_sort:
+    field: started_at
+    order: desc
+
+charts:
+  - id: cohorts_by_week
+    title: Subscription Cohorts by Week
+    type: stacked_bar
+    x: started_at
+    y: id
+    aggregate: count
+    group_by: status
+    time_bucket: week
+
+filters:
+  - field: started_at
+    type: date
+    operator: between
+    label: Subscription Start Date
+  - field: status
+    type: picklist
+    operator: equals
+    label: Status
