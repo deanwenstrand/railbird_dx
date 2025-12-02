@@ -42,11 +42,6 @@ action:
     player_email = player.email
     player_name = player.username or "there"
 
-    # DEV FILTER: Only send to test accounts during development
-    if 'deanwenstrand' not in player_email:
-        logger.info(f"Skipping payment failed email for {player_email} (dev filter)")
-        return
-
     # Get SMTP credentials
     smtp_user = os.environ.get('GMAIL_USERNAME')
     smtp_pass = os.environ.get('GMAIL_APP_PASSWORD')
