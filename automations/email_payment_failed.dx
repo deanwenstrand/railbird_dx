@@ -57,7 +57,7 @@ action:
 
     # Build email
     subject = "Action needed: Your Railbird payment did not go through"
-    body = f"Hey {player_name},\n\n"
+    body = f"Hey {player_name}," + "\n\n"
     body += "We tried to process your Railbird Pro payment, but it did not go through.\n\n"
     body += "This usually happens when:\n"
     body += "- Your card expired\n"
