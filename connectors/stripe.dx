@@ -24,6 +24,8 @@ webhook:
             target: email
           - source: name
             target: username
+          - source: metadata.user_id
+            target: railbird_user_id
 
     - type: customer.updated
       mapping:
@@ -36,6 +38,8 @@ webhook:
             target: email
           - source: name
             target: username
+          - source: metadata.user_id
+            target: railbird_user_id
 
     # Subscription events
     - type: customer.subscription.created
