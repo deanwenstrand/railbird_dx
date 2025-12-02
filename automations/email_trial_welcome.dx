@@ -66,7 +66,7 @@ action:
     body += "Happy shooting,\n"
     body += "The Railbird Team\n\n"
     body += "---\n"
-    body += "Railbird - AI-Powered Pool Analysis\n"
+    body += "Railbird - AI Performance Tracking for Pool\n"
     body += "https://railbird.ai"
 
     msg = MIMEMultipart()

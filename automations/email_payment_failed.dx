@@ -65,7 +65,7 @@ action:
     body += "access to your shot analysis and stats.\n\n"
     body += "Thanks for being a Railbird Pro member.\n\n"
     body += "The Railbird Team\n\n"
-    body += "Railbird - AI-Powered Pool Analysis\n"
+    body += "Railbird - AI Performance Tracking for Pool\n"
     body += "https://railbird.ai"
 
     msg = MIMEMultipart()
