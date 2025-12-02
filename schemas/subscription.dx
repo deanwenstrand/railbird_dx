@@ -93,11 +93,11 @@ fields:
   type: picklist.excl
   required: false
   values:
-    - <1mo
-    - 1mo
-    - 2mo
-    - 3mo
-    - 4+mo
+    - Less than 1 month
+    - 1 month
+    - 2 months
+    - 3 months
+    - 4+ months
   description: Duration bucket based on subscription start date
 
 # System-managed audit fields
