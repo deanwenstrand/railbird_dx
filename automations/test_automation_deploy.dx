@@ -5,11 +5,8 @@ enabled: true
 
 trigger:
   type: database_event
-  "on": record_created
+  "on": [record_created, record_updated]
   tables: [subscription]
-  conditions:
-    - field: status
-      equals: trialing
 
 action:
   type: python
