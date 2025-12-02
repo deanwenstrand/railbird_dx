@@ -3,6 +3,7 @@ name: slack_squawk
 service: slack
 description: "Send notifications to #the-flock channel via Squawk webhook"
 
+endpoint: "${SLACK_SQUAWK_WEBHOOK_URL}"
 endpoint_env: SLACK_SQUAWK_WEBHOOK_URL
 method: "POST"
 
