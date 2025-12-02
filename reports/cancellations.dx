@@ -1,12 +1,12 @@
 type: report
-name: subscription_cohorts
-title: Weekly Subscription Cohorts
+name: cancellations
+title: Cancellations
 source: subscription
 fields:
   - player_id
   - tier
-  - status
   - trial_outcome
+  - tenure_bucket
   - started_at
   - canceled_at
 
@@ -15,27 +15,31 @@ options:
   page_size: 50
   sortable: true
   default_sort:
-    field: started_at
+    field: canceled_at
     order: desc
   display_mode: chart
   table_collapsed: true
 
 charts:
-  - id: cohorts_by_week
-    title: Weekly Subscription Cohorts
+  - id: cancellations_by_week
+    title: Cancellations by Week
     type: stacked_bar
-    x: started_at
+    x: canceled_at
     y: id
     aggregate: count
     group_by: trial_outcome
     time_bucket: week
 
 filters:
-  - field: started_at
+  - field: canceled_at
     type: date
     operator: between
-    label: Start Date
+    label: Canceled Date
   - field: trial_outcome
     type: picklist
     operator: equals
     label: Trial Outcome
+  - field: tenure_bucket
+    type: picklist
+    operator: equals
+    label: Tenure
