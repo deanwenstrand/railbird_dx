@@ -32,7 +32,7 @@ action:
 
     player_email = player.email
     player_name = player.username or player_email.split('@')[0]
-    has_mobile_app = player.has_mobile_app or False
+    has_mobile_app = getattr(player, 'has_mobile_app', False) or False
 
     # DEV FILTER: Only send to test accounts during development
     if 'deanwenstrand' not in player_email:
