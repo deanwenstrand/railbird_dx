@@ -2,7 +2,7 @@ type: schema
 object: task
 view_name: Tasks
 description: Simple to-do style tasks for GTM workflows
-add_to_top_nav: true
+add_to_top_nav: false
 
 fields:
   # Identity

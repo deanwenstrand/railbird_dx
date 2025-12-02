@@ -10,7 +10,7 @@ endpoints:
   - PUT /{id}
   - PATCH /{id}
   - DELETE /{id}
-add_to_top_nav: false
+add_to_top_nav: true
 search:
   enabled: false
 
