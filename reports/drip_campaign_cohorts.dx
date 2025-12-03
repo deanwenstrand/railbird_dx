@@ -1,0 +1,55 @@
+type: report
+name: drip_campaign_cohorts
+title: Drip Campaign Cohorts
+description: Players without active subscriptions, grouped by signup age for email outreach
+source: player
+
+fields:
+  - email
+  - username
+  - created_at
+  - days_since_signup
+  - drip_cohort
+  - has_subscription
+
+options:
+  pagination: true
+  page_size: 100
+  sortable: true
+  default_sort:
+    field: created_at
+    order: desc
+
+filters:
+  - field: drip_cohort
+    type: picklist
+    operator: equals
+    label: Cohort
+  - field: has_subscription
+    type: boolean
+    operator: equals
+    label: Has Subscription
+  - field: created_at
+    type: date
+    operator: between
+    label: Signup Date
+
+computed_fields:
+  - name: days_since_signup
+    expression: "EXTRACT(DAY FROM NOW() - created_at)"
+  - name: drip_cohort
+    expression: |
+      CASE
+        WHEN EXTRACT(DAY FROM NOW() - created_at) BETWEEN 2 AND 4 THEN '3 days'
+        WHEN EXTRACT(DAY FROM NOW() - created_at) BETWEEN 6 AND 8 THEN '7 days'
+        WHEN EXTRACT(DAY FROM NOW() - created_at) BETWEEN 11 AND 13 THEN '12 days'
+        WHEN EXTRACT(DAY FROM NOW() - created_at) BETWEEN 20 AND 22 THEN '21 days'
+        ELSE 'Other'
+      END
+  - name: has_subscription
+    expression: |
+      EXISTS (
+        SELECT 1 FROM subscription s
+        WHERE s.player_id = player.id
+        AND s.status IN ('active', 'trialing')
+      )
