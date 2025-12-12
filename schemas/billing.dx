@@ -106,6 +106,26 @@ fields:
   type: datetime
   required: false
 
+- name: period_start
+  view_name: Period Start
+  type: datetime
+  required: false
+
+- name: period_end
+  view_name: Period End
+  type: datetime
+  required: false
+
+- name: due_date
+  view_name: Due Date
+  type: datetime
+  required: false
+
+- name: paid_at
+  view_name: Paid At
+  type: datetime
+  required: false
+
 - name: extra_data
   view_name: Extra Data
   type: json
