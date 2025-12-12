@@ -95,8 +95,12 @@ fields:
 - name: ltv_cents
   view_name: Lifetime Value (cents)
   type: integer
-  required: false
-  default: 0
+  calculated: true
+  rollup:
+    object: billing
+    field: amount_cents
+    aggregate: sum
+    filter: "event_type = 'Payment Succeeded'"
 
 - name: stripe_customer_id
   view_name: Stripe Customer ID
