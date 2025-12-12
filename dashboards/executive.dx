@@ -1,0 +1,51 @@
+type: dashboard
+name: executive
+title: Executive Overview
+description: High-level business metrics
+
+layout:
+  columns: 2
+
+widgets:
+  - type: kpi
+    title: Active Subscribers
+    source: subscription
+    metric: count
+    filters:
+      status: active
+
+  - type: kpi
+    title: Trialing
+    source: subscription
+    metric: count
+    filters:
+      status: trialing
+
+  - type: kpi
+    title: Total Revenue
+    source: billing
+    metric: sum
+    field: amount_cents
+    format: currency
+
+  - type: kpi
+    title: Churned (Last 30 Days)
+    source: subscription
+    metric: count
+    filters:
+      status: canceled
+    date_filter:
+      field: canceled_at
+      range: last_30_days
+
+  - type: chart
+    title: Weekly Subscription Cohorts
+    report: subscription_cohorts
+    chart_id: cohorts_by_week
+    span: 2
+
+  - type: chart
+    title: Cancellations by Week
+    report: cancellations
+    chart_id: cancellations_by_week
+    span: 2
