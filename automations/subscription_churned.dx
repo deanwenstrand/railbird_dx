@@ -15,14 +15,27 @@ action:
   type: python
   code: |
     import requests
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     from generated.models import Player, Billing
+
+    # === SYNC GUARD: Skip historical records during bulk sync ===
+    canceled_at = context.trigger_data.get('canceled_at')
+    if canceled_at:
+        if isinstance(canceled_at, str):
+            canceled_at_check = datetime.fromisoformat(canceled_at.replace('Z', '+00:00'))
+        else:
+            canceled_at_check = canceled_at
+        if canceled_at_check.tzinfo:
+            now = datetime.now(timezone.utc)
+        else:
+            now = datetime.utcnow()
+        if canceled_at_check < now - timedelta(minutes=5):
+            return  # Skip records canceled more than 5 minutes ago (historical sync)
 
     subscription_id = context.trigger_data.get('id')
     player_id = context.trigger_data.get('player_id')
     tier = context.trigger_data.get('tier', 'Unknown')
     started_at = context.trigger_data.get('started_at')
-    canceled_at = context.trigger_data.get('canceled_at')
     sub_category = context.trigger_data.get('sub_category')
 
     # Get player info

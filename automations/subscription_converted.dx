@@ -15,7 +15,20 @@ action:
   type: python
   code: |
     import requests
+    from datetime import datetime, timedelta, timezone
     from generated.models import Player
+
+    # === SYNC GUARD: Skip historical records during bulk sync ===
+    updated_at = context.trigger_data.get('updated_at')
+    if updated_at:
+        if isinstance(updated_at, str):
+            updated_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+        if updated_at.tzinfo:
+            now = datetime.now(timezone.utc)
+        else:
+            now = datetime.utcnow()
+        if updated_at < now - timedelta(minutes=5):
+            return  # Skip records updated more than 5 minutes ago (historical sync)
 
     # Check if this was a conversion from trial
     old_status = context.trigger_data.get('old_values', {}).get('status')
