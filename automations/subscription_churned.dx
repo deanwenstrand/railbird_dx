@@ -15,12 +15,15 @@ action:
   type: python
   code: |
     import requests
-    from generated.models import Player
+    from datetime import datetime, timedelta
+    from generated.models import Player, Billing
 
     subscription_id = context.trigger_data.get('id')
     player_id = context.trigger_data.get('player_id')
     tier = context.trigger_data.get('tier', 'Unknown')
-    old_status = context.trigger_data.get('old_values', {}).get('status', 'unknown')
+    started_at = context.trigger_data.get('started_at')
+    canceled_at = context.trigger_data.get('canceled_at')
+    sub_category = context.trigger_data.get('sub_category')
 
     # Get player info
     player = context.db.query(Player).filter(Player.id == player_id).first()
@@ -30,11 +33,52 @@ action:
 
     crm_link = f"https://railbird.dilex.ai/player/{player_ulid}"
 
-    # Differentiate between trial and active churns
-    if old_status in ('trial', 'trialing'):
-        churn_type = "Trial Canceled"
-    elif old_status == 'past_due':
-        churn_type = "Churned (payment failed)"
+    # Differentiate between trial and customer churns using the actual payment logic
+    # Trial era started Oct 21, 2025 - before that, all subscriptions were paid from day 1
+    trial_era_start = datetime(2025, 10, 21)
+    is_trial_churn = False
+
+    # Use sub_category if available (set by sync), otherwise calculate
+    if sub_category == 'Trial Cancel':
+        is_trial_churn = True
+    elif sub_category and sub_category not in ('Trialing', 'Active', 'Past Due'):
+        # It's a paid customer churn (e.g., "Less than 1mo Cancel", "1mo Cancel", etc.)
+        is_trial_churn = False
+    elif started_at and canceled_at:
+        # Calculate: if canceled within 7 days of starting, it's a trial churn
+        # Only applies to post-Oct-21 subscriptions (trial era)
+        if isinstance(started_at, str):
+            started_at = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+        if isinstance(canceled_at, str):
+            canceled_at = datetime.fromisoformat(canceled_at.replace('Z', '+00:00'))
+
+        # Remove timezone info for comparison if needed
+        if hasattr(started_at, 'replace') and started_at.tzinfo:
+            started_at = started_at.replace(tzinfo=None)
+        if hasattr(canceled_at, 'replace') and canceled_at.tzinfo:
+            canceled_at = canceled_at.replace(tzinfo=None)
+
+        if started_at >= trial_era_start:
+            # Post-trial era: check if they made it past the 7-day trial
+            days_active = (canceled_at - started_at).days
+            if days_active < 7:
+                is_trial_churn = True
+            else:
+                # They made it past trial - check if they actually paid
+                # Look for any successful payment in billing
+                has_payment = context.db.query(Billing).filter(
+                    Billing.player_id == player_id,
+                    Billing.event_type == 'Payment Succeeded',
+                    Billing.amount_cents > 0
+                ).first() is not None
+                is_trial_churn = not has_payment
+        else:
+            # Pre-trial era: all subscriptions were paid from day 1
+            is_trial_churn = False
+
+    # Set the churn type message
+    if is_trial_churn:
+        churn_type = "Trial Ended"
     else:
         churn_type = "Churned"
 
