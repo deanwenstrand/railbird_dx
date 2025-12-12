@@ -19,6 +19,10 @@ components:
       - stripe_event_id
       - stripe_invoice_id
       - event_at
+      - period_start
+      - period_end
+      - due_date
+      - paid_at
       - extra_data
       - created_at
       - updated_at
