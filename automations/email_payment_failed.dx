@@ -34,14 +34,10 @@ action:
     billing_id = context.trigger_data.get('id')
     player_id = context.trigger_data.get('player_id')
 
-    # Detect payment_failed: has stripe_invoice_id + amount but NO currency
-    # (invoice.payment_succeeded maps currency, payment_failed does not)
-    currency = context.trigger_data.get('currency')
-    stripe_invoice_id = context.trigger_data.get('stripe_invoice_id')
-
-    if currency or not stripe_invoice_id:
-        # Has currency = success, or no invoice = refund/other event
-        logger.info(f"Skipping billing {billing_id} - not a payment_failed event")
+    # Check event_type directly (set by webhook handler)
+    event_type = context.trigger_data.get('event_type')
+    if event_type != 'Payment Failed':
+        logger.info(f"Skipping billing {billing_id} - event_type is '{event_type}', not 'Payment Failed'")
         return
 
     logger.info(f"Processing payment_failed for billing {billing_id}")
