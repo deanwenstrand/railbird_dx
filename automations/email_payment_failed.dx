@@ -19,16 +19,17 @@ action:
     from generated.models import Player, Activity
 
     # === SYNC GUARD: Skip historical records during bulk sync ===
-    created_at = context.trigger_data.get('created_at')
-    if created_at:
-        if isinstance(created_at, str):
-            created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-        if created_at.tzinfo:
+    # Use event_at (actual Stripe event time) not created_at (DB record creation)
+    event_at = context.trigger_data.get('event_at') or context.trigger_data.get('created_at')
+    if event_at:
+        if isinstance(event_at, str):
+            event_at = datetime.fromisoformat(event_at.replace('Z', '+00:00'))
+        if event_at.tzinfo:
             now = datetime.now(timezone.utc)
         else:
             now = datetime.utcnow()
-        if created_at < now - timedelta(minutes=5):
-            return  # Skip records older than 5 minutes (historical sync)
+        if event_at < now - timedelta(minutes=5):
+            return  # Skip events older than 5 minutes
 
     billing_id = context.trigger_data.get('id')
     player_id = context.trigger_data.get('player_id')
